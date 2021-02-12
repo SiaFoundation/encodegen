@@ -1,2 +1,2 @@
 # encodegen
-Automatically generate marshal/unmarshalers for NebulousLabs/encoding.
+(MAJOR WIP) Automatically generate marshal/unmarshalers for NebulousLabs/encoding.
