@@ -2,13 +2,11 @@ package main
 
 import (
 	// "gitlab.com/NebulousLabs/encoding"
-	"fmt"
 	"github.com/dave/jennifer/jen"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"log"
-	"strings"
 )
 
 func main() {
@@ -66,15 +64,18 @@ var a = 5;
 		var statements []jen.Code
 		unmarshalFunc := jen.Func().Params(jen.Id("r").Op("*").Id(structName)).Id("unmarshalBuffer").Params(jen.Id("b").Op("*").Id("objBuffer"))
 		for _, structField := range structType.Fields.List {
-			log.Printf("%+v", *structField)
 			if len(structField.Names) > 0 {
-				fieldNameString, aa := getFieldType(structField.Type, map[string]string{})
-				if err != nil {
+				field := getFieldType(structField.Type)
+				if field == nil {
 					continue
 				}
-				log.Print(aa)
+				fieldAssignment := jen.Id("r").Dot(structField.Names[0].Name).Op("=")
+				if field.Primitive {
+					fieldAssignment = fieldAssignment.Op(field.Name).Parens(jen.Id("b").Dot(field.FunctionName).Call())
+				} else {
+					fieldAssignment = fieldAssignment.Parens(jen.Id("b").Dot(field.FunctionName).Call())
+				}
 
-				fieldAssignment := jen.Id("r").Dot(structField.Names[0].Name).Op("=").Id("b").Dot("read" + strings.Title(fieldNameString)).Call()
 				statements = append(statements, fieldAssignment)
 			}
 		}
@@ -84,95 +85,65 @@ var a = 5;
 
 }
 
+type FieldType struct {
+	Name         string
+	FunctionName string
+	Primitive    bool
+	Pointer      bool
+}
+
 //Returns a string representation of the given expression if it was recognized.
 //Refer to the implementation to see the different string representations.
-func getFieldType(exp ast.Expr, aliases map[string]string) (string, []string) {
+func getFieldType(exp ast.Expr) *FieldType {
 	switch v := exp.(type) {
 	case *ast.Ident:
-		return getIdent(v, aliases)
-	case *ast.ArrayType:
-		return getArrayType(v, aliases)
-	case *ast.StarExpr:
-		return getStarExp(v, aliases)
-	}
-	return "", []string{}
-}
-
-func getIdent(v *ast.Ident, aliases map[string]string) (string, []string) {
-
-	if isPrimitive(v) {
-		return v.Name, []string{}
-	}
-	t := fmt.Sprintf("%s", v.Name)
-	return t, []string{t}
-}
-
-func getArrayType(v *ast.ArrayType, aliases map[string]string) (string, []string) {
-	t, fundamentalTypes := getFieldType(v.Elt, aliases)
-	return fmt.Sprintf("%ss", t), fundamentalTypes
-}
-
-func getInterfaceType(v *ast.InterfaceType, aliases map[string]string) (string, []string) {
-
-	methods := make([]string, 0)
-	for _, field := range v.Methods.List {
-		methodName := ""
-		if field.Names != nil {
-			methodName = field.Names[0].Name
+		if isPrimitive(v) {
+			return &FieldType{
+				Name:         v.Name,
+				FunctionName: supportedPrimitives[v.Name],
+				Primitive:    true,
+				Pointer:      false,
+			}
+			log.Print("primitive")
 		}
-		t, _ := getFieldType(field.Type, aliases)
-		methods = append(methods, methodName+" "+t)
+		break
+		// case *ast.ArrayType:
+		// 	return getArrayType(v)
+		// case *ast.StarExpr:
+		// 	return getStarExp(v)
+	default:
+		log.Print("WARNING: This struct contains unsupported types")
 	}
-	return fmt.Sprintf("{%s}", strings.Join(methods, "; ")), []string{}
+	return nil
 }
 
-func getStarExp(v *ast.StarExpr, aliases map[string]string) (string, []string) {
-	t, f := getFieldType(v.X, aliases)
-	// return fmt.Sprintf("*%s", t), f
-	return fmt.Sprintf("%s", t), f
-}
+const ReadBoolFunction = "readBool"
+const ReadIntFunction = "readUint64"
+const ReadStringFunction = "readPrefixedBytes"
+const ReadByteFunction = "readByte"
 
-var globalPrimitives = map[string]struct{}{
-	"bool":        {},
-	"string":      {},
-	"int":         {},
-	"int8":        {},
-	"int16":       {},
-	"int32":       {},
-	"int64":       {},
-	"uint":        {},
-	"uint8":       {},
-	"uint16":      {},
-	"uint32":      {},
-	"uint64":      {},
-	"uintptr":     {},
-	"byte":        {},
-	"rune":        {},
-	"float32":     {},
-	"float64":     {},
-	"complex64":   {},
-	"complex128":  {},
-	"error":       {},
-	"*bool":       {},
-	"*string":     {},
-	"*int":        {},
-	"*int8":       {},
-	"*int16":      {},
-	"*int32":      {},
-	"*int64":      {},
-	"*uint":       {},
-	"*uint8":      {},
-	"*uint16":     {},
-	"*uint32":     {},
-	"*uint64":     {},
-	"*uintptr":    {},
-	"*byte":       {},
-	"*rune":       {},
-	"*float32":    {},
-	"*float64":    {},
-	"*complex64":  {},
-	"*complex128": {},
-	"*error":      {},
+const ReadBoolPointerFunction = "readBool"
+const ReadIntPointerFunction = "readUint64"
+const ReadStringPointerFunction = "readPrefixedBytes"
+const ReadBytePointerFunction = "readByte"
+
+// TEMPORARY
+const UnsupportedTypeFunction = "panic"
+
+var supportedPrimitives = map[string]string{
+	"bool":   ReadBoolFunction,
+	"string": ReadStringFunction,
+	"int":    ReadIntFunction,
+	"int8":   ReadIntFunction,
+	"int16":  ReadIntFunction,
+	"int32":  ReadIntFunction,
+	"int64":  ReadIntFunction,
+	"uint":   ReadIntFunction,
+	"uint8":  ReadIntFunction,
+	"uint16": ReadIntFunction,
+	"uint32": ReadIntFunction,
+	"uint64": ReadIntFunction,
+	"byte":   ReadByteFunction,
 }
 
 func isPrimitive(ty *ast.Ident) bool {
@@ -180,15 +151,6 @@ func isPrimitive(ty *ast.Ident) bool {
 }
 
 func isPrimitiveString(t string) bool {
-	_, ok := globalPrimitives[t]
+	_, ok := supportedPrimitives[t]
 	return ok
-}
-
-const packageConstant = "{packageName}"
-
-func replacePackageConstant(field, packageName string) string {
-	if packageName != "" {
-		packageName = fmt.Sprintf("%s.", packageName)
-	}
-	return strings.Replace(field, packageConstant, packageName, 1)
 }
