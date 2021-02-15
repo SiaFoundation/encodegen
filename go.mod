@@ -1,4 +1,4 @@
-module github.com/SiaFoundation/encodegen
+module sia.tech/encodegen
 
 go 1.14
 
