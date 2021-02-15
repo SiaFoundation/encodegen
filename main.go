@@ -17,7 +17,7 @@ package main
 
 type TestType1 struct {
 	A uint64
-	B int64
+	B *int64
 	C uint32
 	D int32
 	E bool
@@ -64,17 +64,17 @@ var a = 5;
 
 	for structName, structType := range structs {
 		var statements []jen.Code
-		unmarshalFunc := jen.Func().Parens(jen.Op("r *" + structName)).Id("unmarshalBuffer").Params(jen.Op("b *objBuffer"))
+		unmarshalFunc := jen.Func().Params(jen.Id("r").Op("*").Id(structName)).Id("unmarshalBuffer").Params(jen.Id("b").Op("*").Id("objBuffer"))
 		for _, structField := range structType.Fields.List {
 			log.Printf("%+v", *structField)
 			if len(structField.Names) > 0 {
-
-				// log.Print(structField.Kind)
-				fieldNameString, _ := getFieldType(structField.Type, map[string]string{})
+				fieldNameString, aa := getFieldType(structField.Type, map[string]string{})
 				if err != nil {
 					continue
 				}
-				fieldAssignment := jen.Qual("r", structField.Names[0].Name).Op("=").Qual("b", "read"+strings.Title(fieldNameString)).Call()
+				log.Print(aa)
+
+				fieldAssignment := jen.Id("r").Dot(structField.Names[0].Name).Op("=").Id("b").Dot("read" + strings.Title(fieldNameString)).Call()
 				statements = append(statements, fieldAssignment)
 			}
 		}
@@ -92,6 +92,8 @@ func getFieldType(exp ast.Expr, aliases map[string]string) (string, []string) {
 		return getIdent(v, aliases)
 	case *ast.ArrayType:
 		return getArrayType(v, aliases)
+	case *ast.StarExpr:
+		return getStarExp(v, aliases)
 	}
 	return "", []string{}
 }
@@ -122,6 +124,12 @@ func getInterfaceType(v *ast.InterfaceType, aliases map[string]string) (string, 
 		methods = append(methods, methodName+" "+t)
 	}
 	return fmt.Sprintf("{%s}", strings.Join(methods, "; ")), []string{}
+}
+
+func getStarExp(v *ast.StarExpr, aliases map[string]string) (string, []string) {
+	t, f := getFieldType(v.X, aliases)
+	// return fmt.Sprintf("*%s", t), f
+	return fmt.Sprintf("%s", t), f
 }
 
 var globalPrimitives = map[string]struct{}{
