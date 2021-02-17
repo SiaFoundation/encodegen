@@ -13,24 +13,25 @@ func main() {
 package main
 
 type TestType1 struct {
-	A ***uint64
-	B int64
-	C string
-	E int
-	F byte
-	G *byte
-	H *TestType2
+	// A ***uint64
+	// B int64
+	// C string
+	// E int
+	// F byte
+	// G *byte
+	H []*byte
+	I []TestType2
 }
 type TestType2 struct {
 	I string
-	J *TestType3
+	// J *TestType3
 	K byte
-	X TestType3
+	X [][]TestType3
 }
 
 type TestType3 struct {
 	L uint64
-	Y TestType4
+	// Y *TestType4
 }
 
 type TestType4 struct {
@@ -69,11 +70,12 @@ type TestType4 struct {
 
 	var g generator
 
-	for structName := range structs {
+	for structName, structType := range structs {
 		g.Printf("func (r *%s) unmarshalBuffer(b *objBuffer) {\n", structName)
-		writeFieldAssignmentStatements(&g, structs, []string{}, structName)
+		writeFieldAssignmentStatements(&g, structs, []string{}, structType)
 		g.Printf("}\n")
 	}
 
+	// log.Printf("UNFORMATTED:\n%s", string(g.buf.Bytes()))
 	log.Printf("FORMATTED:\n%s", string(g.format()))
 }

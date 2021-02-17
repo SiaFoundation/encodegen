@@ -32,115 +32,80 @@ type FieldType struct {
 	FunctionName string
 	Primitive    bool
 	StarCount    int
+	ArrayCount   int
 }
 
-func writeFieldAssignmentStatements(g *generator, structs map[string]*ast.StructType, prefixs []string, currentStructName string) {
-	for _, structField := range structs[currentStructName].Fields.List {
+func writeFieldAssignmentStatements(g *generator, structs map[string]*ast.StructType, prefixs []string, currentStructType *ast.StructType) {
+	if g == nil || currentStructType == nil {
+		return
+	}
+	for _, structField := range currentStructType.Fields.List {
 		if len(structField.Names) > 0 {
-			field := getFieldType(structField.Type, 0)
+			field := getFieldType(structField.Type, 0, 0)
 			if field == nil {
 				continue
 			}
+			assignmentName, assignmentValue := "", ""
 
 			// nil pointer checks for written pointers
-			for i := 0; i < field.StarCount; i++ {
-				g.Printf("if b.readBool() {\n")
+			if field.ArrayCount == 0 {
+				for i := 0; i < field.StarCount; i++ {
+					g.Printf("if b.readBool() {\n")
+				}
+			}
+
+			if len(prefixs) == 0 {
+				assignmentName = fmt.Sprintf("r.%s", structField.Names[0].Name)
+			} else {
+				assignmentName = fmt.Sprintf("r.%s.%s", strings.Join(prefixs, "."), structField.Names[0].Name)
 			}
 
 			if field.Primitive {
-				if len(prefixs) == 0 {
-					g.Printf("r.%s = ", structField.Names[0].Name)
+				assignmentValue = fmt.Sprintf("%s(b.%s())\n", field.Name, field.FunctionName)
+
+				g.Printf("%s = ", assignmentName)
+				if field.ArrayCount > 0 {
+					g.Printf("make(%s%s, int(b.readUint64()))\n", strings.Repeat("[]", 1), field.Name)
+					g.Printf("for i := range %s {\n", assignmentName)
+					for i := 0; i < field.StarCount; i++ {
+						g.Printf("if b.readBool() {\n")
+					}
+					g.Printf("%s[i] = %s\n", assignmentName, assignmentValue)
+					for i := 0; i < field.StarCount; i++ {
+						g.Printf("}\n")
+					}
+					g.Printf("}\n")
 				} else {
-					g.Printf("r.%s.%s = ", strings.Join(prefixs, "."), structField.Names[0].Name)
+					g.Printf("%s", assignmentValue)
 				}
-				g.Printf("%s(b.%s())\n", field.Name, field.FunctionName)
 			} else {
-				prefixs = append(prefixs, structField.Names[0].Name)
-				writeFieldAssignmentStatements(g, structs, prefixs, field.Name)
-				prefixs = prefixs[:len(prefixs)-1]
+				if field.ArrayCount > 0 {
+					g.Printf("%s = make(%s%s, int(b.readUint64()))\n", assignmentName, strings.Repeat("[]", 1), field.Name)
+					g.Printf("for i := range %s {\n", assignmentName)
+					prefixs = append(prefixs, structField.Names[0].Name+"[i]")
+					for i := 0; i < field.StarCount; i++ {
+						g.Printf("if b.readBool() {\n")
+					}
+					writeFieldAssignmentStatements(g, structs, prefixs, structs[field.Name])
+					for i := 0; i < field.StarCount; i++ {
+						g.Printf("}\n")
+					}
+					prefixs = prefixs[:len(prefixs)-1]
+					g.Printf("}\n")
+				} else {
+					prefixs = append(prefixs, structField.Names[0].Name)
+					writeFieldAssignmentStatements(g, structs, prefixs, structs[field.Name])
+					prefixs = prefixs[:len(prefixs)-1]
+				}
 			}
-			// close if statements for nil pointer checking
-			for i := 0; i < field.StarCount; i++ {
-				g.Printf("}\n")
+
+			if field.ArrayCount == 0 {
+
+				// close if statements for nil pointer checking
+				for i := 0; i < field.StarCount; i++ {
+					g.Printf("}\n")
+				}
 			}
 		}
 	}
-}
-
-const ReadBoolFunction = "readBool"
-const ReadIntFunction = "readUint64"
-const ReadStringFunction = "readPrefixedBytes"
-const ReadByteFunction = "readByte"
-
-const ReadBoolPointerFunction = "readBool"
-const ReadIntPointerFunction = "readUint64"
-const ReadStringPointerFunction = "readPrefixedBytes"
-const ReadBytePointerFunction = "readByte"
-
-// TEMPORARY
-const UnsupportedTypeFunction = "panic"
-
-var supportedPrimitives = map[string]string{
-	"bool":   ReadBoolFunction,
-	"string": ReadStringFunction,
-	"int":    ReadIntFunction,
-	"int8":   ReadIntFunction,
-	"int16":  ReadIntFunction,
-	"int32":  ReadIntFunction,
-	"int64":  ReadIntFunction,
-	"uint":   ReadIntFunction,
-	"uint8":  ReadIntFunction,
-	"uint16": ReadIntFunction,
-	"uint32": ReadIntFunction,
-	"uint64": ReadIntFunction,
-	"byte":   ReadByteFunction,
-}
-
-func isPrimitive(ty *ast.Ident) bool {
-	return isPrimitiveString(ty.Name)
-}
-
-func isPrimitiveString(t string) bool {
-	_, ok := supportedPrimitives[t]
-	return ok
-}
-
-func getFieldType(exp ast.Expr, existingStarCount int) *FieldType {
-	switch v := exp.(type) {
-	case *ast.Ident:
-		if isPrimitive(v) {
-			log.Print(&FieldType{
-				Name:         v.Name,
-				FunctionName: supportedPrimitives[v.Name],
-				Primitive:    true,
-				StarCount:    existingStarCount,
-			})
-			return &FieldType{
-				Name:         v.Name,
-				FunctionName: supportedPrimitives[v.Name],
-				Primitive:    true,
-				StarCount:    existingStarCount,
-			}
-		} else {
-			return &FieldType{
-				Name:         v.Name,
-				FunctionName: "read" + strings.Title(v.Name),
-				Primitive:    false,
-				StarCount:    existingStarCount,
-			}
-		}
-		break
-	// case *ast.ArrayType:
-	// 	return getArrayType(v)
-	case *ast.StarExpr:
-		existingStarCount++
-		fieldType := getFieldType(v.X, existingStarCount)
-		return fieldType
-		break
-	default:
-		log.Printf("WARNING: This struct contains unsupported data (%+v)", exp)
-		return nil
-		break
-	}
-	return nil
 }
