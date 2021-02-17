@@ -45,13 +45,6 @@ func getFieldType(exp ast.Expr, existingStarCount int, existingArrayCount int) *
 	switch v := exp.(type) {
 	case *ast.Ident:
 		if isPrimitive(v) {
-			log.Print(&FieldType{
-				Name:         v.Name,
-				FunctionName: supportedPrimitives[v.Name],
-				Primitive:    true,
-				StarCount:    existingStarCount,
-				ArrayCount:   existingArrayCount,
-			})
 			return &FieldType{
 				Name:         v.Name,
 				FunctionName: supportedPrimitives[v.Name],

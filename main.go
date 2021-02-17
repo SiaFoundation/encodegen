@@ -19,18 +19,19 @@ type TestType1 struct {
 	// E int
 	// F byte
 	// G *byte
-	H []*byte
+	H []byte
 	I []TestType2
 }
 type TestType2 struct {
 	I string
 	// J *TestType3
 	K byte
-	X []TestType3
+	X []*TestType3
 }
 
 type TestType3 struct {
 	L uint64
+	W uint32
 	// Y *TestType4
 }
 
@@ -72,7 +73,7 @@ type TestType4 struct {
 
 	for structName, structType := range structs {
 		g.Printf("func (r *%s) unmarshalBuffer(b *objBuffer) {\n", structName)
-		writeFieldAssignmentStatements(&g, structs, []string{}, structType)
+		writeFieldAssignmentStatements(&g, structs, []string{}, "i", structType)
 		g.Printf("}\n")
 	}
 

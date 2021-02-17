@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/format"
 	"log"
+	"strconv"
 	"strings"
 )
 
@@ -35,7 +36,23 @@ type FieldType struct {
 	ArrayCount   int
 }
 
-func writeFieldAssignmentStatements(g *generator, structs map[string]*ast.StructType, prefixs []string, currentStructType *ast.StructType) {
+func generateIdentifier(currentIdentifier string) string {
+	idSplit := strings.Split(currentIdentifier, "i")
+	if len(idSplit) != 2 {
+		return "'"
+	}
+	if idSplit[1] != "" {
+		num, err := strconv.Atoi(idSplit[1])
+		if err != nil {
+			return ""
+		}
+		return fmt.Sprintf("i%d", num+1)
+	} else {
+		return "i1"
+	}
+}
+
+func writeFieldAssignmentStatements(g *generator, structs map[string]*ast.StructType, prefixs []string, currentIdentifier string, currentStructType *ast.StructType) {
 	if g == nil || currentStructType == nil {
 		return
 	}
@@ -45,6 +62,7 @@ func writeFieldAssignmentStatements(g *generator, structs map[string]*ast.Struct
 			if field == nil {
 				continue
 			}
+			log.Printf("%+v", field)
 			assignmentName, assignmentValue := "", ""
 
 			// nil pointer checks for written pointers
@@ -66,11 +84,12 @@ func writeFieldAssignmentStatements(g *generator, structs map[string]*ast.Struct
 				g.Printf("%s = ", assignmentName)
 				if field.ArrayCount > 0 {
 					g.Printf("make(%s%s, int(b.readUint64()))\n", strings.Repeat("[]", 1), field.Name)
-					g.Printf("for i := range %s {\n", assignmentName)
+					identifier := generateIdentifier(currentIdentifier)
+					g.Printf("for %s := range %s {\n", identifier, assignmentName)
 					for i := 0; i < field.StarCount; i++ {
 						g.Printf("if b.readBool() {\n")
 					}
-					g.Printf("%s[i] = %s\n", assignmentName, assignmentValue)
+					g.Printf("%s[%s] = %s\n", assignmentName, identifier, assignmentValue)
 					for i := 0; i < field.StarCount; i++ {
 						g.Printf("}\n")
 					}
@@ -81,12 +100,13 @@ func writeFieldAssignmentStatements(g *generator, structs map[string]*ast.Struct
 			} else {
 				if field.ArrayCount > 0 {
 					g.Printf("%s = make(%s%s, int(b.readUint64()))\n", assignmentName, strings.Repeat("[]", 1), field.Name)
-					g.Printf("for i := range %s {\n", assignmentName)
-					prefixs = append(prefixs, structField.Names[0].Name+"[i]")
+					identifier := generateIdentifier(currentIdentifier)
+					g.Printf("for %s := range %s {\n", identifier, assignmentName)
+					prefixs = append(prefixs, fmt.Sprintf("%s[%s]", structField.Names[0].Name, identifier))
 					for i := 0; i < field.StarCount; i++ {
 						g.Printf("if b.readBool() {\n")
 					}
-					writeFieldAssignmentStatements(g, structs, prefixs, structs[field.Name])
+					writeFieldAssignmentStatements(g, structs, prefixs, identifier, structs[field.Name])
 					for i := 0; i < field.StarCount; i++ {
 						g.Printf("}\n")
 					}
@@ -94,18 +114,18 @@ func writeFieldAssignmentStatements(g *generator, structs map[string]*ast.Struct
 					g.Printf("}\n")
 				} else {
 					prefixs = append(prefixs, structField.Names[0].Name)
-					writeFieldAssignmentStatements(g, structs, prefixs, structs[field.Name])
+					writeFieldAssignmentStatements(g, structs, prefixs, currentIdentifier, structs[field.Name])
 					prefixs = prefixs[:len(prefixs)-1]
 				}
 			}
 
+			// close if statements for nil pointer checking
 			if field.ArrayCount == 0 {
-
-				// close if statements for nil pointer checking
 				for i := 0; i < field.StarCount; i++ {
 					g.Printf("}\n")
 				}
 			}
+
 		}
 	}
 }
