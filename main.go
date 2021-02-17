@@ -26,7 +26,7 @@ type TestType2 struct {
 	I string
 	// J *TestType3
 	K byte
-	X [][]TestType3
+	X []TestType3
 }
 
 type TestType3 struct {
