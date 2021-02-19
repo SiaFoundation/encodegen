@@ -3,18 +3,12 @@ package main
 import (
 	"go/ast"
 	"log"
-	"strings"
 )
 
 const ReadBoolFunction = "readBool"
 const ReadIntFunction = "readUint64"
 const ReadStringFunction = "readPrefixedBytes"
 const ReadByteFunction = "readByte"
-
-const ReadBoolPointerFunction = "readBool"
-const ReadIntPointerFunction = "readUint64"
-const ReadStringPointerFunction = "readPrefixedBytes"
-const ReadBytePointerFunction = "readByte"
 
 var supportedPrimitives = map[string]string{
 	"bool":   ReadBoolFunction,
@@ -54,15 +48,15 @@ func getFieldType(exp ast.Expr, existingStarCount int, existingArrayCount int) *
 			}
 		} else {
 			return &FieldType{
-				Name:         v.Name,
-				FunctionName: "read" + strings.Title(v.Name),
-				Primitive:    false,
-				StarCount:    existingStarCount,
-				ArrayCount:   existingArrayCount,
+				Name:       v.Name,
+				Primitive:  false,
+				StarCount:  existingStarCount,
+				ArrayCount: existingArrayCount,
 			}
 		}
 		break
 	case *ast.ArrayType:
+		// count is for multidimensional arrays, currently not implemented however
 		existingArrayCount++
 		fieldType := getFieldType(v.Elt, existingStarCount, existingArrayCount)
 		return fieldType
