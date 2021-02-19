@@ -16,6 +16,11 @@ type generator struct {
 	buf bytes.Buffer
 }
 
+// clear the buffer
+func (g *generator) reset() {
+	g.buf.Reset()
+}
+
 func (g *generator) format() []byte {
 	src, err := format.Source(g.buf.Bytes())
 	if err != nil {
@@ -36,7 +41,9 @@ type FieldType struct {
 	ArrayCount   int
 }
 
-func generateIdentifier(currentIdentifier string) string {
+func nextRangeIdentifier(currentIdentifier string) string {
+	// this function allows the generated the code to iterate over slices of structs that have slices within them without having iteration identifiers conflict (i.e., there'd be multiple "range i := r.Fields"s)
+
 	idSplit := strings.Split(currentIdentifier, "i")
 	if len(idSplit) != 2 {
 		return "'"
@@ -52,17 +59,22 @@ func generateIdentifier(currentIdentifier string) string {
 	}
 }
 
-func writeFieldAssignmentStatements(g *generator, structs map[string]*ast.StructType, prefixs []string, currentIdentifier string, currentStructType *ast.StructType) {
+// I debated whether to use these or not but I felt that it basically just complicates the code for no real gain
+// const bufferIdentifier string = "b"
+// const structIdentifier string = "r"
+
+func (g *generator) writeFieldAssignmentStatements(structs map[string]*ast.StructType, prefixs []string, currentIdentifier string, currentStructType *ast.StructType) {
 	if g == nil || currentStructType == nil {
 		return
 	}
 	for _, structField := range currentStructType.Fields.List {
 		if len(structField.Names) > 0 {
+
 			field := getFieldType(structField.Type, 0, 0)
 			if field == nil {
 				continue
 			}
-			log.Printf("%+v", field)
+
 			assignmentName, assignmentValue := "", ""
 
 			// nil pointer checks for written pointers
@@ -72,49 +84,55 @@ func writeFieldAssignmentStatements(g *generator, structs map[string]*ast.Struct
 				}
 			}
 
-			if len(prefixs) == 0 {
-				assignmentName = fmt.Sprintf("r.%s", structField.Names[0].Name)
-			} else {
-				assignmentName = fmt.Sprintf("r.%s.%s", strings.Join(prefixs, "."), structField.Names[0].Name)
-			}
+			// generate the stuff before the equals sign in the assignment, i.e. "r.A" or "r.A.C" by joining the prefixs and the current field name
+			assignmentName = fmt.Sprintf("%s.%s", strings.Join(prefixs, "."), structField.Names[0].Name)
 
 			if field.Primitive {
+				// generate the stuff after the equals sign.  we first cast the type (note that this may generate redundancies like uint64(b.readUint64()) but the compiler is ok with this) then call the appropriate read function
 				assignmentValue = fmt.Sprintf("%s(b.%s())\n", field.Name, field.FunctionName)
 
 				g.Printf("%s = ", assignmentName)
 				if field.ArrayCount > 0 {
+					// initialize the slice with make
 					g.Printf("make(%s%s, int(b.readUint64()))\n", strings.Repeat("[]", 1), field.Name)
-					identifier := generateIdentifier(currentIdentifier)
+					identifier := nextRangeIdentifier(currentIdentifier)
+
 					g.Printf("for %s := range %s {\n", identifier, assignmentName)
+					// if its a pointer do the nil check first
 					for i := 0; i < field.StarCount; i++ {
 						g.Printf("if b.readBool() {\n")
 					}
+					// write the actual assignment
 					g.Printf("%s[%s] = %s\n", assignmentName, identifier, assignmentValue)
+					// close the nil checks
 					for i := 0; i < field.StarCount; i++ {
 						g.Printf("}\n")
 					}
+					// close the range
 					g.Printf("}\n")
 				} else {
 					g.Printf("%s", assignmentValue)
 				}
 			} else {
+				// array of structs
 				if field.ArrayCount > 0 {
 					g.Printf("%s = make(%s%s, int(b.readUint64()))\n", assignmentName, strings.Repeat("[]", 1), field.Name)
-					identifier := generateIdentifier(currentIdentifier)
+					identifier := nextRangeIdentifier(currentIdentifier)
 					g.Printf("for %s := range %s {\n", identifier, assignmentName)
 					prefixs = append(prefixs, fmt.Sprintf("%s[%s]", structField.Names[0].Name, identifier))
 					for i := 0; i < field.StarCount; i++ {
 						g.Printf("if b.readBool() {\n")
 					}
-					writeFieldAssignmentStatements(g, structs, prefixs, identifier, structs[field.Name])
+					g.writeFieldAssignmentStatements(structs, prefixs, identifier, structs[field.Name])
 					for i := 0; i < field.StarCount; i++ {
 						g.Printf("}\n")
 					}
 					prefixs = prefixs[:len(prefixs)-1]
 					g.Printf("}\n")
 				} else {
+					// single struct
 					prefixs = append(prefixs, structField.Names[0].Name)
-					writeFieldAssignmentStatements(g, structs, prefixs, currentIdentifier, structs[field.Name])
+					g.writeFieldAssignmentStatements(structs, prefixs, currentIdentifier, structs[field.Name])
 					prefixs = prefixs[:len(prefixs)-1]
 				}
 			}

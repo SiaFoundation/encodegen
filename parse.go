@@ -61,6 +61,7 @@ func getFieldType(exp ast.Expr, existingStarCount int, existingArrayCount int) *
 		fieldType := getFieldType(v.Elt, existingStarCount, existingArrayCount)
 		return fieldType
 	case *ast.StarExpr:
+		// the star count allows us to keep track of how many levels of dereferencing there is. i.e. ***int should have a starcount of 3
 		existingStarCount++
 		fieldType := getFieldType(v.X, existingStarCount, existingArrayCount)
 		return fieldType
