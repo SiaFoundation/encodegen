@@ -10,20 +10,45 @@ const ReadIntFunction = "readUint64"
 const ReadStringFunction = "readPrefixedBytes"
 const ReadByteFunction = "readByte"
 
-var supportedPrimitives = map[string]string{
-	"bool":   ReadBoolFunction,
-	"string": ReadStringFunction,
-	"int":    ReadIntFunction,
-	"int8":   ReadIntFunction,
-	"int16":  ReadIntFunction,
-	"int32":  ReadIntFunction,
-	"int64":  ReadIntFunction,
-	"uint":   ReadIntFunction,
-	"uint8":  ReadIntFunction,
-	"uint16": ReadIntFunction,
-	"uint32": ReadIntFunction,
-	"uint64": ReadIntFunction,
-	"byte":   ReadByteFunction,
+const WriteBoolFunction = "writeBool"
+const WriteIntFunction = "writeUint64"
+const WriteStringFunction = "writePrefixedBytes"
+const WriteByteFunction = "writeByte"
+
+type PrimitiveFunctions struct {
+	ReadFunction  string
+	WriteFunction string
+	WriteCast     string
+}
+
+type FieldType struct {
+	Name               string
+	PrimitiveFunctions PrimitiveFunctions
+	Primitive          bool
+	StarCount          int
+	ArrayCount         int
+}
+
+var IntPrimitiveFunctions = PrimitiveFunctions{
+	ReadFunction:  ReadIntFunction,
+	WriteFunction: WriteIntFunction,
+	WriteCast:     "uint64",
+}
+
+var supportedPrimitives = map[string]PrimitiveFunctions{
+	"bool":   {ReadFunction: ReadBoolFunction, WriteFunction: WriteBoolFunction, WriteCast: "bool"},
+	"string": {ReadFunction: ReadStringFunction, WriteFunction: WriteStringFunction, WriteCast: "[]byte"},
+	"byte":   {ReadFunction: ReadByteFunction, WriteFunction: WriteByteFunction, WriteCast: "byte"},
+	"int":    IntPrimitiveFunctions,
+	"int8":   IntPrimitiveFunctions,
+	"int16":  IntPrimitiveFunctions,
+	"int32":  IntPrimitiveFunctions,
+	"int64":  IntPrimitiveFunctions,
+	"uint":   IntPrimitiveFunctions,
+	"uint8":  IntPrimitiveFunctions,
+	"uint16": IntPrimitiveFunctions,
+	"uint32": IntPrimitiveFunctions,
+	"uint64": IntPrimitiveFunctions,
 }
 
 func isPrimitive(ty *ast.Ident) bool {
@@ -40,11 +65,11 @@ func getFieldType(exp ast.Expr, existingStarCount int, existingArrayCount int) *
 	case *ast.Ident:
 		if isPrimitive(v) {
 			return &FieldType{
-				Name:         v.Name,
-				FunctionName: supportedPrimitives[v.Name],
-				Primitive:    true,
-				StarCount:    existingStarCount,
-				ArrayCount:   existingArrayCount,
+				Name:               v.Name,
+				PrimitiveFunctions: supportedPrimitives[v.Name],
+				Primitive:          true,
+				StarCount:          existingStarCount,
+				ArrayCount:         existingArrayCount,
 			}
 		} else {
 			return &FieldType{
