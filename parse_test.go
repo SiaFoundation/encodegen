@@ -20,7 +20,6 @@ func TestGetFieldType(t *testing.T) {
 	ident := &ast.Ident{Name: "UnknownStruct"}
 	expectedOutput := &FieldType{
 		Name:         "UnknownStruct",
-		FunctionName: "",
 		Primitive:    false,
 		StarCount:    0,
 		ArrayCount:   0,
@@ -35,7 +34,7 @@ func TestGetFieldType(t *testing.T) {
 	ident = &ast.Ident{Name: "uint8"}
 	expectedOutput = &FieldType{
 		Name:         "uint8",
-		FunctionName: supportedPrimitives["uint8"],
+		PrimitiveFunctions: supportedPrimitives["uint8"],
 		Primitive:    true,
 		StarCount:    0,
 		ArrayCount:   0,
@@ -52,7 +51,7 @@ func TestGetFieldType(t *testing.T) {
 	}}
 	expectedOutput = &FieldType{
 		Name:         "uint8",
-		FunctionName: supportedPrimitives["uint8"],
+		PrimitiveFunctions: supportedPrimitives["uint8"],
 		Primitive:    true,
 		StarCount:    0,
 		ArrayCount:   1,
@@ -69,7 +68,6 @@ func TestGetFieldType(t *testing.T) {
 	}}
 	expectedOutput = &FieldType{
 		Name:         "UnknownStruct",
-		FunctionName: "",
 		Primitive:    false,
 		StarCount:    0,
 		ArrayCount:   1,
@@ -87,7 +85,6 @@ func TestGetFieldType(t *testing.T) {
 
 	expectedOutput = &FieldType{
 		Name:         "UnknownStruct",
-		FunctionName: "",
 		Primitive:    false,
 		StarCount:    1,
 		ArrayCount:   0,
@@ -103,7 +100,6 @@ func TestGetFieldType(t *testing.T) {
 
 	expectedOutput = &FieldType{
 		Name:         "UnknownStruct",
-		FunctionName: "",
 		Primitive:    false,
 		StarCount:    2,
 		ArrayCount:   0,
@@ -119,7 +115,6 @@ func TestGetFieldType(t *testing.T) {
 
 	expectedOutput = &FieldType{
 		Name:         "UnknownStruct",
-		FunctionName: "",
 		Primitive:    false,
 		StarCount:    2,
 		ArrayCount:   1,
