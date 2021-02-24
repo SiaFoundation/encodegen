@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"go.sia.tech/encodegen2/internal/codegen"
+	"go.sia.tech/encodegen/internal/codegen"
 	"log"
 )
 
