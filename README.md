@@ -4,6 +4,7 @@ This package provides a command line tool to generate gojay's marshaling and unm
 ## TODO
 - Fix arrays of pointers and pointers to arrays
 - Foreign types
+- Sync.pool object reuse
 
 ## Get started
 
