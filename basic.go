@@ -1,19 +1,18 @@
 package main
 
 type TestType1 struct {
-	A int
+	A ***int64
 	B uint64
-	C string
-	D []byte
-	E TestType2
+	C []*string
+	D TestType2
 }
 
 type TestType2 struct {
-	F uint64
-	G []uint64
-	H TestType3
+	A uint64
+	D uint32
+	E []TestType3
 }
 
 type TestType3 struct {
-	I string
+	F []byte
 }
