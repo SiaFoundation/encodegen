@@ -56,7 +56,7 @@ if {{range $j, $_ := N $i}}*{{end}}{{$item.Accessor}} != nil {
 	b.writeBool(true)
 {{end}}
 
-b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{.Accessor}}))
+b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{range $i, $_ := N .LeftStarCount}}*{{end}}{{.Accessor}}))
 
 {{range $i, $_ := N .LeftStarCount}}
 
