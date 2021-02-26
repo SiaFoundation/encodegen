@@ -1,14 +1,14 @@
 package codegen
 
-const ReadBoolFunction = "readBool"
-const ReadIntFunction = "readUint64"
-const ReadStringFunction = "readPrefixedBytes"
-const ReadByteFunction = "readByte"
+const ReadBoolFunction = "ReadBool"
+const ReadIntFunction = "ReadUint64"
+const ReadStringFunction = "ReadPrefixedBytes"
+const ReadByteFunction = "ReadByte"
 
-const WriteBoolFunction = "writeBool"
-const WriteIntFunction = "writeUint64"
-const WriteStringFunction = "writePrefixedBytes"
-const WriteByteFunction = "writeByte"
+const WriteBoolFunction = "WriteBool"
+const WriteIntFunction = "WriteUint64"
+const WriteStringFunction = "WritePrefixedBytes"
+const WriteByteFunction = "WriteByte"
 
 type PrimitiveFunctions struct {
 	ReadFunction  string

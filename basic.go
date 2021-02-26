@@ -1,19 +1,20 @@
 package main
 
-type TestType1 struct {
-	A  int64
-	B  *uint64
-	Z  []string
-	ZZ []*string
-	D  TestType2
+type Message struct {
+	Id   int
+	Name string
+	// Price       float64
+	Ints []int
+	// Floats      []float32
+	SubMessageX *SubMessage
+	MessagesX   []*SubMessage
+	SubMessageY SubMessage
+	MessagesY   []SubMessage
+	IsTrue      *bool
+	Payload     []byte
 }
 
-type TestType2 struct {
-	A uint64
-	D uint32
-	G []*TestType3
-}
-
-type TestType3 struct {
-	F []byte
+type SubMessage struct {
+	Id          int
+	Description string
 }

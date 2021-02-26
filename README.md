@@ -5,15 +5,20 @@ This package provides a command line tool to generate gojay's marshaling and unm
 - Foreign types (most types are not going to have Sia encoding specific marshalers whereas many will have MarshalJSON)
 - Sync.pool object reuse
 
-## TEST
-
-`go run main.go basic.go -t TestType1`
-
 ## Get started
 
 ```sh
 go install github.com/francoispqt/gojay/gojay
 ```
+
+## Test
+
+```
+$ cd internal/codegen/test
+$ ./generate_tests.sh
+$ cd basic_struct
+$ go test
+
 
 ## Generate code
 

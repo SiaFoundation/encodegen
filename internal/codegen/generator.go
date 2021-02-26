@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const encodingPackage = "gitlab.com/NebulousLabs/encoding"
+const encodingPackage = "go.sia.tech/encodegen/encodegen"
 
 // Generator holds the content to generate the gojay code
 type Generator struct {
@@ -241,6 +241,5 @@ func (g *Generator) readPackageCode(pkgPath string) error {
 	if g.options.Pkg != "" {
 		g.Pkg = g.options.Pkg
 	}
-
 	return err
 }
