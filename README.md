@@ -2,7 +2,6 @@
 This package provides a command line tool to generate gojay's marshaling and unmarshaling interface implementation for custom struct type(s)
 
 ## TODO
-- Fix arrays of pointers and pointers to arrays
 - Foreign types (most types are not going to have Sia encoding specific marshalers whereas many will have MarshalJSON)
 - Sync.pool object reuse
 

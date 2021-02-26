@@ -3,6 +3,7 @@ package codegen
 import (
 	"fmt"
 	"github.com/viant/toolbox"
+	"strings"
 )
 
 //Field represents a field.
@@ -22,7 +23,8 @@ type Field struct {
 	RawComponentType   string
 	IsPointerComponent bool
 
-	LeftStarCount       int    // number of dereferences, i.e. **int64 -> 2, ***uint64 -> 3
+	// LeftStarCount       int    // number of dereferences, i.e. **int64 -> 2, ***uint64 -> 3
+	// RightStarCount      int    // number of dereferences after array brackets, i.e. []**int64 -> 2, *[]***uint64 -> 3
 	PointerModifier     string //takes field pointer, "&" if field is not a pointer type
 	DereferenceModifier string //take pointer value, i.e "*" if field has a pointer type
 
@@ -52,7 +54,6 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 		IsAnonymous:        field.IsAnonymous,
 		Name:               field.Name,
 		RawType:            field.TypeName,
-		LeftStarCount:      countLeft(field.TypeName, "*"),
 		IsPointer:          field.IsPointer,
 		Key:                getJSONKey(owner.options, field),
 		Receiver:           owner.Alias + " *" + owner.TypeInfo.Name,
@@ -72,10 +73,22 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 	if field.IsPointer {
 		result.DereferenceModifier = "*"
 		result.Init = "&" + result.Init
+		if strings.Contains(result.RawType, "[]") {
+			field.IsSlice = true
+			result.IsSlice = field.IsSlice
+
+			arraySplit := strings.Split(result.RawType, "[]")
+			for _, split := range arraySplit[1:] {
+				if strings.Contains(split, "*") {
+					field.IsPointerComponent = true
+					result.IsPointerComponent = field.IsPointerComponent
+				}
+			}
+		}
 	} else {
 		result.PointerModifier = "&"
-
 	}
+
 	if field.IsSlice {
 		result.HelperType = getSliceHelperTypeName(field.ComponentType, field.IsPointerComponent)
 		result.PoolName = getPoolName(field.ComponentType)
@@ -88,6 +101,11 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 			poolName := getPoolName(field.TypeName)
 			result.Init = fmt.Sprintf(`%v.Get().(*%v)`, poolName, field.TypeName)
 		}
+	}
+
+	if field.IsPointer && field.IsSlice {
+		field.ComponentType = strings.Replace(result.Type, "*[]", "", -1)
+		result.ComponentType = field.ComponentType
 	}
 
 	encodingMethod := field.ComponentType

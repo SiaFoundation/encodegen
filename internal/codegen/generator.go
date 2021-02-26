@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const gojayPackage = "github.com/francoispqt/gojay"
+const encodingPackage = "gitlab.com/NebulousLabs/encoding"
 
 // Generator holds the content to generate the gojay code
 type Generator struct {
@@ -47,7 +47,7 @@ func (g *Generator) init() {
 	g.structTypes = map[string]string{}
 	g.sliceTypes = map[string]string{}
 	g.poolInit = map[string]string{}
-	g.addImport(gojayPackage)
+	g.addImport(encodingPackage)
 	// if we want pools, add the sync package right away
 	if g.options.PoolObjects {
 		g.addImport("sync")
@@ -117,6 +117,11 @@ func (g *Generator) writeCode() error {
 	if err != nil {
 		return err
 	}
+	// remove unnecessary newlines
+	for i := 0; i < 5; i++ {
+		expandedCode = strings.Replace(string(expandedCode), "\n\n", "\n", -1)
+	}
+
 	// fmt.Printf("UNFORMATTED:\n%s", expandedCode)
 
 	code, err := format.Source([]byte(expandedCode))

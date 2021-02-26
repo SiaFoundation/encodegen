@@ -84,8 +84,7 @@ func (s *Struct) generateFieldReset(fields []*toolbox.FieldInfo) ([]string, erro
 		if field.IsPointer || field.IsSlice || (fieldTypeInfo != nil && fieldTypeInfo.IsSlice) {
 			templateKey = resetFieldValue
 		} else {
-			switch field.Type {
-			case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "string", "byte", "bool", "[]string", "[]bool", "[]int", "[]int8", "[]int16", "[]int32", "[]int64", "[]uint", "[]uint8", "[]uint16", "[]uint32", "[]uint64", "[]float32", "[]float64", "[]byte":
+			if isPrimitiveString(field.Type) || isPrimitiveArrayString(field.Type) {
 				templateKey = resetFieldValue
 			}
 		}
@@ -140,10 +139,10 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []s
 		}
 
 	main:
-		switch field.Type {
-		case "string", "byte", "bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64":
+		switch {
+		case isPrimitiveString(field.Type):
 			templateKey = decodeBaseType
-		case "[]string", "[]bool", "[]int", "[]int8", "[]int16", "[]int32", "[]int64", "[]uint", "[]uint8", "[]uint16", "[]uint32", "[]uint64", "[]float32", "[]float64", "[]byte":
+		case isPrimitiveArrayString(field.Type):
 			templateKey = decodeBaseTypeSlice
 			s.generatePrimitiveArray(field)
 		default:
@@ -155,9 +154,7 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []s
 					break main
 				}
 
-				switch fieldTypeInfo.ComponentType {
-
-				case "string", "byte", "bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64":
+				if isPrimitiveString(fieldTypeInfo.ComponentType) {
 					s.generatePrimitiveArray(field)
 					templateKey = decodeBaseTypeSlice
 					break main
@@ -247,10 +244,10 @@ func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo) ([]string, e
 			continue
 		}
 	main:
-		switch field.Type {
-		case "string", "byte", "bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64":
+		switch {
+		case isPrimitiveString(field.Type):
 			templateKey = encodeBaseType
-		case "[]string", "[]byte", "[]bool", "[]int", "[]int8", "[]int16", "[]int32", "[]int64", "[]uint", "[]uint8", "[]uint16", "[]uint32", "[]uint64", "[]float32", "[]float64":
+		case isPrimitiveArrayString(field.Type):
 			templateKey = encodeBaseTypeSlice
 			s.generatePrimitiveArray(field)
 		default:
@@ -259,8 +256,8 @@ func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo) ([]string, e
 					templateKey = encodeStruct
 					break main
 				}
-				switch fieldTypeInfo.ComponentType {
-				case "string", "byte", "bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64":
+				switch {
+				case isPrimitiveString(fieldTypeInfo.ComponentType):
 					templateKey = decodeBaseTypeSlice
 					break main
 				}
@@ -271,8 +268,8 @@ func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo) ([]string, e
 			} else if _, k, ok := s.typedFieldEncode(field, field.Type); ok {
 				templateKey = k
 			} else {
-				// templateKey = decodeUnknown
-				templateKey = decodeStruct
+				// templateKey = encodeUnknown
+				templateKey = encodeStruct
 				// return nil, fmt.Errorf("Unknown type %s for field %s", field.Type, field.Name)
 			}
 		}

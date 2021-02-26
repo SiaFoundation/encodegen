@@ -86,7 +86,8 @@ func getJSONKey(options *Options, field *toolbox.FieldInfo) string {
 }
 
 func normalizeTypeName(typeName string) string {
-	return strings.Replace(typeName, "*", "", strings.Count(typeName, "*"))
+	// return strings.Replace(typeName, "*", "", strings.Count(typeName, "*"))
+	return typeName
 }
 
 func sortedKeys(m map[string]string) []string {
