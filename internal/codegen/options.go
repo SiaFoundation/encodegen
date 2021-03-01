@@ -13,7 +13,6 @@ type Options struct {
 	Source      string
 	Dest        string
 	Types       []string
-	PoolObjects bool
 	TagName     string
 	Pkg         string
 }
@@ -32,8 +31,6 @@ const (
 	optionKeySource      = "s"
 	optionKeyDest        = "o"
 	optionKeyTypes       = "t"
-	optionKeyTagName     = "a"
-	optionKeyPoolObjects = "p"
 	optionKeyPkg         = "pkg"
 )
 
@@ -44,8 +41,6 @@ func NewOptionsWithFlagSet(set *flag.FlagSet) *Options {
 	var result = &Options{}
 	result.Dest = set.Lookup(optionKeyDest).Value.String()
 	result.Source = set.Lookup(optionKeySource).Value.String()
-	result.PoolObjects = toolbox.AsBoolean(set.Lookup(optionKeyPoolObjects).Value.String())
-	result.TagName = set.Lookup(optionKeyTagName).Value.String()
 	result.Types = strings.Split(set.Lookup(optionKeyTypes).Value.String(), ",")
 	result.Pkg = set.Lookup(optionKeyPkg).Value.String()
 	if result.Source == "" {

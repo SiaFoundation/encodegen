@@ -1,15 +1,18 @@
-package pooled_struct
+package medium_struct
+
+type AliasSubMessage SubMessage
 
 type Message struct {
 	Id          int
 	Name        string
-	Price       float64
-	Ints        []int
-	Floats      []float64
+	Ints        []*int
 	SubMessageX *SubMessage
 	MessagesX   []*SubMessage
 	SubMessageY SubMessage
 	MessagesY   []SubMessage
 	IsTrue      *bool
 	Payload     []byte
+	Uint64      uint64
+	// TODO
+	// AliasedSubmessage AliasSubMessage
 }

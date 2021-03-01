@@ -27,31 +27,11 @@ func TestGenerator_Generate(t *testing.T) {
 		},
 
 		{
-			description: "struct with pool code generation",
+			description: "basic struct with more features utilizited",
 			options: &Options{
-				Source:      path.Join(parent, "pooled_struct"),
+				Source:      path.Join(parent, "medium_struct"),
 				Types:       []string{"Message"},
-				Dest:        path.Join(parent, "pooled_struct", "encoding.go"),
-				PoolObjects: true,
-			},
-		},
-		{
-			description: "struct with embedded type code generation",
-			options: &Options{
-				Source:      path.Join(parent, "embedded_struct"),
-				Types:       []string{"Message"},
-				Dest:        path.Join(parent, "embedded_struct", "encoding.go"),
-				PoolObjects: false,
-			},
-		},
-		{
-			description: "struct with json annotation and time/foarmat|layouat generation",
-			options: &Options{
-				Source:      path.Join(parent, "annotated_struct"),
-				Types:       []string{"Message"},
-				Dest:        path.Join(parent, "annotated_struct", "encoding.go"),
-				PoolObjects: false,
-				TagName:     "json",
+				Dest:        path.Join(parent, "medium_struct", "encoding.go"),
 			},
 		},
 	}

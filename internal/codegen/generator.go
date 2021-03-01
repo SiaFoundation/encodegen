@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const encodingPackage = "go.sia.tech/encodegen/encodegen"
+const encodingPackage = "go.sia.tech/encodegen/pkg/encodegen"
 
 // Generator holds the content to generate the gojay code
 type Generator struct {
@@ -18,8 +18,6 @@ type Generator struct {
 	types         map[string]string
 	structTypes   map[string]string
 	sliceTypes    map[string]string
-	pooledObjects map[string]string
-	poolInit      map[string]string
 	imports       map[string]bool
 	filedInit     []string
 	Pkg           string
@@ -43,15 +41,9 @@ func (g *Generator) addImport(pkg string) {
 func (g *Generator) init() {
 	g.filedInit = []string{}
 	g.imports = map[string]bool{}
-	g.pooledObjects = map[string]string{}
 	g.structTypes = map[string]string{}
 	g.sliceTypes = map[string]string{}
-	g.poolInit = map[string]string{}
 	g.addImport(encodingPackage)
-	// if we want pools, add the sync package right away
-	if g.options.PoolObjects {
-		g.addImport("sync")
-	}
 }
 
 // NewGenerator creates a new generator with the given options
@@ -89,10 +81,6 @@ func (g *Generator) Generate() error {
 func (g *Generator) writeCode() error {
 	var generatedCode = []string{}
 
-	for _, key := range sortedKeys(g.pooledObjects) {
-		code := g.pooledObjects[key]
-		generatedCode = append(generatedCode, code)
-	}
 	generatedCode = append(generatedCode, "")
 	for _, key := range sortedKeys(g.sliceTypes) {
 		code := g.sliceTypes[key]
@@ -104,25 +92,15 @@ func (g *Generator) writeCode() error {
 		generatedCode = append(generatedCode, code)
 	}
 
-	for _, key := range sortedKeys(g.poolInit) {
-		code := g.poolInit[key]
-		if g.Init != "" {
-			g.Init += "\n"
-		}
-		g.Init += code
-	}
 	g.Code = strings.Join(generatedCode, "\n")
 
 	expandedCode, err := expandBlockTemplate(fileCode, g)
 	if err != nil {
 		return err
 	}
-	// remove unnecessary newlines
-	for i := 0; i < 5; i++ {
-		expandedCode = strings.Replace(string(expandedCode), "\n\n", "\n", -1)
-	}
 
-	// fmt.Printf("UNFORMATTED:\n%s", expandedCode)
+	// remove unnecessary newlines
+	expandedCode = strings.Replace(string(expandedCode), "\n\n", "\n", -1)
 
 	code, err := format.Source([]byte(expandedCode))
 
@@ -176,25 +154,7 @@ func (g *Generator) generateTypedArray(field *Field) error {
 	return err
 }
 
-func (g *Generator) generatePool(structType string) error {
-	if !g.options.PoolObjects {
-		return nil
-	}
-	var err error
-	if g.pooledObjects[structType], err = expandBlockTemplate(poolVar, struct {
-		PoolName string
-	}{getPoolName(structType)}); err == nil {
-		g.poolInit[structType], err = expandBlockTemplate(poolInit, struct {
-			PoolName string
-			Type     string
-		}{getPoolName(structType), structType})
-	}
-	return err
-
-}
-
 func (g *Generator) generateStructCode(structType string) error {
-	structType = normalizeTypeName(structType)
 	typeInfo := g.Type(structType)
 	if typeInfo == nil {
 		return nil
@@ -202,7 +162,6 @@ func (g *Generator) generateStructCode(structType string) error {
 	if _, hasCode := g.structTypes[structType]; hasCode {
 		return nil
 	}
-	g.generatePool(structType)
 
 	aStruct := NewStruct(typeInfo, g)
 	code, err := aStruct.Generate()

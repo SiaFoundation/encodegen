@@ -1,10 +1,6 @@
 # Gojay code generator
 This package provides a command line tool to generate gojay's marshaling and unmarshaling interface implementation for custom struct type(s)
 
-## TODO
-- Foreign types (most types are not going to have Sia encoding specific marshalers whereas many will have MarshalJSON)
-- Sync.pool object reuse
-
 ## Get started
 
 ```sh
@@ -33,9 +29,7 @@ If you just want to the output to stdout, omit the -o flag.
 ### Using flags
 - s Source file/dir path, can be a relative or absolute path
 - t Types to generate with all its dependencies (comma separated)
-- a Annotation tag used to read metadata (default: json)
 - o Output file (relative or absolute path)
-- p Pool to reuse object (using sync.Pool)
 
 Examples:
 

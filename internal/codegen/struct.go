@@ -31,20 +31,12 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	var resetCode = ""
-	if s.options.PoolObjects {
-		resetCode, err = s.generateReset(structInfo.Fields())
-		if err != nil {
-			return "", err
-		}
-	}
 	var data = struct {
 		Receiver      string
 		Alias         string
 		InitEmbedded  string
 		EncodingCases string
 		DecodingCases string
-		Reset         string
 		FieldCount    int
 	}{
 		Receiver:      s.Alias + " *" + s.Name,
@@ -52,63 +44,19 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) 
 		EncodingCases: strings.Join(encodingCases, "\n"),
 		FieldCount:    len(decodingCases),
 		InitEmbedded:  initEmbedded,
-		Reset:         resetCode,
 		Alias:         s.Alias,
 	}
 	return expandBlockTemplate(encodingStructType, data)
 }
 
-func (s *Struct) generateReset(fields []*toolbox.FieldInfo) (string, error) {
-	fieldReset, err := s.generateFieldReset(fields)
-	if err != nil {
-		return "", nil
-	}
-	return expandBlockTemplate(resetStruct, struct {
-		Reset    string
-		Receiver string
-	}{
-		Reset:    strings.Join(fieldReset, "\n"),
-		Receiver: s.Alias + " *" + s.Name,
-	})
-}
-
-func (s *Struct) generateFieldReset(fields []*toolbox.FieldInfo) ([]string, error) {
-	fieldReset := []string{}
-	for i := range fields {
-		var templateKey = -1
-		fieldTypeInfo := s.Type(normalizeTypeName(fields[i].TypeName))
-		field, err := NewField(s, fields[i], fieldTypeInfo)
-		if err != nil {
-			return nil, err
-		}
-		if field.IsPointer || field.IsSlice || (fieldTypeInfo != nil && fieldTypeInfo.IsSlice) {
-			templateKey = resetFieldValue
-		} else {
-			if isPrimitiveString(field.Type) || isPrimitiveArrayString(field.Type) {
-				templateKey = resetFieldValue
-			}
-		}
-		if templateKey != -1 {
-			code, err := expandFieldTemplate(templateKey, field)
-			if err != nil {
-				return nil, err
-			}
-			fieldReset = append(fieldReset, code)
-		}
-	}
-	return fieldReset, nil
-}
 
 func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []string, error) {
 
 	fieldCases := []string{}
 	var initCode = ""
 	for i := range fields {
-		if isSkipable(s.options, fields[i]) {
-			continue
-		}
 		var templateKey = -1
-		fieldTypeInfo := s.Type(normalizeTypeName(fields[i].TypeName))
+		fieldTypeInfo := s.Type(fields[i].TypeName)
 		field, err := NewField(s, fields[i], fieldTypeInfo)
 		if err != nil {
 			return "", nil, err
@@ -226,11 +174,8 @@ func (s *Struct) generateEmbeddedFieldEncoding(field *Field, fieldTypeInfo *tool
 func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo) ([]string, error) {
 	fieldCases := []string{}
 	for i := range fields {
-		if isSkipable(s.options, fields[i]) {
-			continue
-		}
 		var templateKey = -1
-		fieldTypeInfo := s.Type(normalizeTypeName(fields[i].TypeName))
+		fieldTypeInfo := s.Type(fields[i].TypeName)
 		field, err := NewField(s, fields[i], fieldTypeInfo)
 		if err != nil {
 			return nil, err

@@ -1,4 +1,4 @@
-package basic_struct
+package medium_struct
 
 import (
 	"reflect"
@@ -9,28 +9,35 @@ import (
 )
 
 var isTrue = true
+
+var testInt int = 999
+var testString string = "This string is a test"
+
 var msg = Message{
 	Id:   1022,
 	Name: "name acc",
-	Ints: []int{1, 2, 5},
+	Ints: []*int{&testInt, &testInt, &testInt},
 	SubMessageX: &SubMessage{
 		Id:          102,
 		Description: "abcd",
 	},
 	MessagesX: []*SubMessage{
 		{
-			Id:          2102,
-			Description: "abce",
+			Id:             2102,
+			Description:    "abce",
+			Strings:        []string{"WASDF", "FDSAW"},
+			PointerStrings: []*string{&testString, nil, &testString, &testString, &testString, &testString, &testString, &testString, &testString},
 		},
 	},
 	SubMessageY: SubMessage{
 		Id:          3102,
 		Description: "abcf",
+		Strings:     []string{"Test", "Test2", "TTTTT"},
 	},
 	MessagesY: []SubMessage{
 		{
-			Id:          5102,
-			Description: "abcg",
+			Description:    "abcg",
+			PointerStrings: []*string{&testString, &testString, nil, nil, nil, &testString, &testString, &testString, nil, &testString, &testString, &testString},
 		},
 		{
 			Id:          5106,
@@ -39,6 +46,7 @@ var msg = Message{
 	},
 	IsTrue:  &isTrue,
 	Payload: []byte(`"123"`),
+	Uint64:  999999,
 }
 
 func TestMessage(t *testing.T) {
