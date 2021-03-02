@@ -31,15 +31,22 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) 
 	if err != nil {
 		return "", err
 	}
+
+	if structInfo.IsDerived {
+		// if !isPrimitiveString(structInfo.Derived) && !isPrimitiveArrayString(structInfo.Derived) {
+		decodingCases, encodingCases = s.generateAliasCases(structInfo)
+		// }
+	}
+
 	var data = struct {
-		Receiver      string
+		Receiver string
 		Alias         string
 		InitEmbedded  string
 		EncodingCases string
 		DecodingCases string
 		FieldCount    int
 	}{
-		Receiver:      s.Alias + " *" + s.Name,
+		Receiver: s.Alias + " *" + s.Name,
 		DecodingCases: strings.Join(decodingCases, "\n"),
 		EncodingCases: strings.Join(encodingCases, "\n"),
 		FieldCount:    len(decodingCases),
@@ -49,6 +56,19 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) 
 	return expandBlockTemplate(encodingStructType, data)
 }
 
+/*
+The template system works on struct fields not structs and but these cases are very simple (we do not need any templating logic like if statements etc) so I decided to make them separate rather than add a bunch more code.
+If we have too many cases like these I will make it generic but currently I don't think it is a problem.
+*/
+func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo) ([]string, []string) {
+	if !isPrimitiveString(structInfo.Derived) && !isPrimitiveArrayString(structInfo.Derived) {
+		return []string{fmt.Sprintf("(*%s)(%s).UnmarshalBuffer(b)", structInfo.Derived, s.Alias)}, []string{fmt.Sprintf("(*%s)(%s).MarshalBuffer(b)", structInfo.Derived, s.Alias)}
+	} else {
+		primitiveType := supportedPrimitives[structInfo.Derived]
+		return []string{
+			fmt.Sprintf("*%s = %s(%s(b.%s()))", s.Alias, structInfo.Name, structInfo.Derived, primitiveType.ReadFunction)}, []string{fmt.Sprintf("b.%s(%s(%s(*%s)))", primitiveType.WriteFunction, primitiveType.WriteCast, structInfo.Derived, s.Alias)}
+	}
+}
 
 func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []string, error) {
 
@@ -120,19 +140,10 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []s
 
 				break main
 			} else if field.IsSlice {
-				if f, _, ok := s.typedFieldDecode(field, field.ComponentType); ok {
-					templateKey = decodeStructSlice
-					if err = f(field); err != nil {
-						return "", nil, err
-					}
-				} else {
 					templateKey = decodeStructSlice
 					if err = s.generateObjectArray(field); err != nil {
 						return "", nil, err
 					}
-				}
-			} else if _, k, ok := s.typedFieldDecode(field, field.Type); ok {
-				templateKey = k
 			} else {
 				// templateKey = decodeUnknown
 				templateKey = decodeStruct
@@ -210,8 +221,6 @@ func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo) ([]string, e
 				break main
 			} else if field.IsSlice {
 				templateKey = encodeStructSlice
-			} else if _, k, ok := s.typedFieldEncode(field, field.Type); ok {
-				templateKey = k
 			} else {
 				// templateKey = encodeUnknown
 				templateKey = encodeStruct
@@ -228,14 +237,6 @@ func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo) ([]string, e
 
 	}
 	return fieldCases, nil
-}
-
-func (s *Struct) typedFieldEncode(field *Field, typeName string) (func(*Field) error, int, bool) {
-	return nil, 0, false
-}
-
-func (s *Struct) typedFieldDecode(field *Field, typeName string) (func(*Field) error, int, bool) {
-	return nil, 0, false
 }
 
 func NewStruct(info *toolbox.TypeInfo, generator *Generator) *Struct {

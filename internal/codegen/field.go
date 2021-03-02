@@ -8,10 +8,9 @@ import (
 
 //Field represents a field.
 type Field struct {
-	Init               string
-	Name               string
 	Accessor           string
-	Alias              string //object alias name
+	Alias              string //object in function (un)marshaler definition
+	AliasDerived string // if the type is a type alias the original type goes here
 	Type               string
 	RawType            string
 	ComponentType      string
@@ -21,7 +20,6 @@ type Field struct {
 	DecodingMethod     string
 	EncodingMethod     string
 
-	PrimitiveWriteCastEnabled bool
 	PrimitiveWriteCast string
 
 	IsAnonymous     bool
@@ -33,7 +31,6 @@ type Field struct {
 func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeInfo) (*Field, error) {
 	var result = &Field{
 		IsAnonymous:        field.IsAnonymous,
-		Name:               field.Name,
 		RawType:            field.TypeName,
 		IsPointer:          field.IsPointer,
 		Type:               field.TypeName,
@@ -45,10 +42,13 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 	}
 
 	if fieldType != nil && fieldType.Derived != "" {
-		result.Alias = fieldType.Derived
+		result.AliasDerived = fieldType.Derived
 	}
 
 	if field.IsPointer {
+		if strings.Contains(result.RawType, "**") {
+			return nil, fmt.Errorf("Only single pointers are supported (error found in %+v)", field)
+		}
 		// toolbox library does not properly label pointers to slices but we dont support these anyways
 		if strings.Contains(result.RawType, "[]") {
 			return nil, fmt.Errorf("Pointers to slices (%+v) are not supported", field)
@@ -80,11 +80,6 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 		result.EncodingMethod = primitive.WriteFunction
 		result.DecodingMethod = primitive.ReadFunction
 		result.PrimitiveWriteCast = primitive.WriteCast
-		if primitive.Cast {
-			result.PrimitiveWriteCastEnabled = true
-		} else {
-			result.PrimitiveWriteCastEnabled = false
-		}
 	}
 
 	if result.IsPointerComponent {

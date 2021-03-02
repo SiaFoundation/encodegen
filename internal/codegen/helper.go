@@ -26,14 +26,6 @@ func extractReceiverAlias(structType string) string {
 	return strings.ToLower(result)
 }
 
-
-func wrapperIfNeeded(text, wrappingChar string) string {
-	if strings.HasPrefix(text, wrappingChar) {
-		return text
-	}
-	return wrappingChar + text + wrappingChar
-}
-
 func sortedKeys(m map[string]string) []string {
 	keys := make([]string, len(m))
 	i := 0

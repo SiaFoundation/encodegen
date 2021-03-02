@@ -12,6 +12,7 @@ var isTrue = true
 
 var testInt int = 999
 var testString string = "This string is a test"
+var testAliasInt AliasInt = AliasInt(9001)
 
 var msg = Message{
 	Id:   1022,
@@ -47,6 +48,20 @@ var msg = Message{
 	IsTrue:  &isTrue,
 	Payload: []byte(`"123"`),
 	Uint64:  999999,
+	AliasedSubmessage: AliasSubMessage(SubMessage{
+		Id: 444,
+	}),
+	DoubleAliasedSubmessage: DoubleAliasSubMessage(AliasSubMessage(SubMessage{
+		Id:          321,
+		Description: "amazing",
+	})),
+	ArrayAliasSubmessage: []AliasSubMessage{AliasSubMessage(SubMessage{
+		Id: 1,
+	})},
+	AliasInt:        testAliasInt,
+	PointerAliasInt: &testAliasInt,
+	ArrayAliasInt:   []AliasInt{testAliasInt, testAliasInt, testAliasInt},
+	DoubleAliasInt:  DoubleAliasInt(testAliasInt),
 }
 
 func TestMessage(t *testing.T) {

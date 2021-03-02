@@ -42,7 +42,7 @@ var fieldTemplate = map[int]string{
 		b.WriteBool(true)
 {{end}}
 
-	b.{{.EncodingMethod}}({{if .PrimitiveWriteCastEnabled}}{{.PrimitiveWriteCast}}{{end}}({{if .IsPointer}}*{{end}}{{.Accessor}}))
+	b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{if .IsPointer}}*{{end}}{{.Accessor}}))
 
 {{if .IsPointer}}
 	} else {
@@ -80,10 +80,10 @@ for i := range {{if .IsPointer}}*{{end}}{{.Accessor}} {
 	if {{.Accessor}}[i] != nil {
 		b.WriteBool(true)
 
-		b.{{.EncodingMethod}}({{if .PrimitiveWriteCastEnabled}}{{.PrimitiveWriteCast}}{{end}}(*{{.Accessor}}[i]))
+		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}(*{{.Accessor}}[i]))
 
 	{{else}}
-		b.{{.EncodingMethod}}({{if .PrimitiveWriteCastEnabled}}{{.PrimitiveWriteCast}}{{end}}({{.Accessor}}[i]))
+		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{.Accessor}}[i]))
 	{{end}}
 
 	{{if .IsPointerComponent}}
@@ -181,11 +181,7 @@ package {{base .Pkg}}
 import (
 	{{.Imports}}
 )
-{{if .Init}}
-func init() {
-{{.Init}}
-}
-{{end}}
+
 {{.Code}}
 `,
 	encodingStructType: `// MarshalBuffer implements MarshalerBuffer

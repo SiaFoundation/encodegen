@@ -1,6 +1,10 @@
 package medium_struct
 
+type DoubleAliasSubMessage AliasSubMessage
 type AliasSubMessage SubMessage
+
+type AliasInt int
+type DoubleAliasInt AliasInt
 
 type Message struct {
 	Id          int
@@ -14,5 +18,12 @@ type Message struct {
 	Payload     []byte
 	Uint64      uint64
 	// TODO
-	// AliasedSubmessage AliasSubMessage
+	AliasedSubmessage              AliasSubMessage
+	ArrayAliasSubmessage           []AliasSubMessage
+	DoubleAliasedSubmessage        DoubleAliasSubMessage
+	PointerDoubleAliasedSubmessage *DoubleAliasSubMessage
+	AliasInt                       AliasInt
+	PointerAliasInt                *AliasInt
+	ArrayAliasInt                  []AliasInt
+	DoubleAliasInt                 DoubleAliasInt
 }

@@ -99,8 +99,7 @@ func (g *Generator) writeCode() error {
 		return err
 	}
 
-	// remove unnecessary newlines
-	expandedCode = strings.Replace(string(expandedCode), "\n\n", "\n", -1)
+	// fmt.Printf("UNFORMATTED\n:%s", string(expandedCode))
 
 	code, err := format.Source([]byte(expandedCode))
 
@@ -159,6 +158,7 @@ func (g *Generator) generateStructCode(structType string) error {
 	if typeInfo == nil {
 		return nil
 	}
+
 	if _, hasCode := g.structTypes[structType]; hasCode {
 		return nil
 	}
