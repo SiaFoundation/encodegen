@@ -4,5 +4,4 @@ type SubMessage struct {
 	Id             int
 	Description    string
 	Strings        []string
-	PointerStrings []*string
 }

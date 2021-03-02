@@ -296,21 +296,6 @@ func (m *SubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 	}
 
-	b.WriteUint64(uint64(len(m.PointerStrings)))
-
-	for i := range m.PointerStrings {
-
-		if m.PointerStrings[i] != nil {
-			b.WriteBool(true)
-
-			b.WritePrefixedBytes([]byte(*m.PointerStrings[i]))
-
-		} else {
-			b.WriteBool(false)
-		}
-
-	}
-
 }
 
 // UnmarshalBuffer implements encodegen's UnmarshalerBuffer
@@ -325,19 +310,6 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 	for i := range m.Strings {
 
 		m.Strings[i] = string(b.ReadPrefixedBytes())
-
-	}
-
-	m.PointerStrings = make([]*string, int(b.ReadUint64()))
-
-	for i := range m.PointerStrings {
-
-		if b.ReadBool() {
-			if m.PointerStrings[i] == nil {
-				m.PointerStrings[i] = new(string)
-			}
-			*m.PointerStrings[i] = string(b.ReadPrefixedBytes())
-		}
 
 	}
 
