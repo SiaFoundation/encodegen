@@ -45,6 +45,7 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) 
 		EncodingCases string
 		DecodingCases string
 		FieldCount    int
+		HasSlice bool
 	}{
 		Receiver: s.Alias + " *" + s.Name,
 		DecodingCases: strings.Join(decodingCases, "\n"),
@@ -52,8 +53,18 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) 
 		FieldCount:    len(decodingCases),
 		InitEmbedded:  initEmbedded,
 		Alias:         s.Alias,
+		HasSlice: hasSlice(structInfo.Fields()),
 	}
 	return expandBlockTemplate(encodingStructType, data)
+}
+
+func hasSlice(fields []*toolbox.FieldInfo) bool {
+	for _, field := range fields {
+		if field.IsSlice {
+			return true
+		}
+	}
+	return false
 }
 
 /*

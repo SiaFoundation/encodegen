@@ -76,16 +76,21 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 // UnmarshalBuffer implements encodegen's UnmarshalerBuffer
 func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
+	var length int = 0
+
 	m.Id = int(b.ReadUint64())
 
 	m.Name = string(b.ReadPrefixedBytes())
 
-	m.Ints = make([]int, int(b.ReadUint64()))
+	length = int(b.ReadUint64())
+	if length > 0 {
+		m.Ints = make([]int, length)
 
-	for i := range m.Ints {
+		for i := range m.Ints {
 
-		m.Ints[i] = int(b.ReadUint64())
+			m.Ints[i] = int(b.ReadUint64())
 
+		}
 	}
 
 	if b.ReadBool() {
@@ -95,27 +100,33 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 		(*SubMessage)(m.SubMessageX).UnmarshalBuffer(b)
 	}
 
-	m.MessagesX = make([]*SubMessage, int(b.ReadUint64()))
+	length = int(b.ReadUint64())
+	if length > 0 {
+		m.MessagesX = make([]*SubMessage, length)
 
-	for i := range m.MessagesX {
+		for i := range m.MessagesX {
 
-		if b.ReadBool() {
-			if m.MessagesX[i] == nil {
-				m.MessagesX[i] = new(SubMessage)
+			if b.ReadBool() {
+				if m.MessagesX[i] == nil {
+					m.MessagesX[i] = new(SubMessage)
+				}
+				m.MessagesX[i].UnmarshalBuffer(b)
 			}
-			m.MessagesX[i].UnmarshalBuffer(b)
-		}
 
+		}
 	}
 
 	(*SubMessage)(&m.SubMessageY).UnmarshalBuffer(b)
 
-	m.MessagesY = make([]SubMessage, int(b.ReadUint64()))
+	length = int(b.ReadUint64())
+	if length > 0 {
+		m.MessagesY = make([]SubMessage, length)
 
-	for i := range m.MessagesY {
+		for i := range m.MessagesY {
 
-		(*SubMessage)(&m.MessagesY[i]).UnmarshalBuffer(b)
+			(*SubMessage)(&m.MessagesY[i]).UnmarshalBuffer(b)
 
+		}
 	}
 
 	if b.ReadBool() {
@@ -125,12 +136,15 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 		*m.IsTrue = bool(b.ReadBool())
 	}
 
-	m.Payload = make([]byte, int(b.ReadUint64()))
+	length = int(b.ReadUint64())
+	if length > 0 {
+		m.Payload = make([]byte, length)
 
-	for i := range m.Payload {
+		for i := range m.Payload {
 
-		m.Payload[i] = byte(b.ReadByte())
+			m.Payload[i] = byte(b.ReadByte())
 
+		}
 	}
 
 	return b.Err()

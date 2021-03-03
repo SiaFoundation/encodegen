@@ -16,51 +16,55 @@ var testAliasInt AliasInt = AliasInt(9001)
 
 var msg = Message{
 	Id:   1022,
-	Name: "name acc",
-	Ints: []*int{&testInt, &testInt, &testInt},
+	Name: "A",
+	Names: nil,
+	Ints: []*int{&testInt, nil, &testInt},
 	SubMessageX: &SubMessage{
 		Id:          102,
 		Description: "abcd",
-		Strings: []string{"W", "X", "Y", "Z"},
+		Strings:     []string{"W", "X", "Y", "Z"},
+		PointerStrings: []*string{&testString},
 	},
 	MessagesX: []*SubMessage{
 		{
-			Id:             2102,
-			Description:    "abce",
-			Strings:        []string{"WASDF", "FDSAW"},
+			Id:          2102,
+			Description: "abce",
+			Strings:     []string{"WASDF", "FDSAW"},
+		PointerStrings: []*string{nil},
 		},
 	},
 	SubMessageY: SubMessage{
 		Id:          3102,
 		Description: "abcf",
 		Strings:     []string{"Test", "Test2", "TTTTT"},
+		PointerStrings: []*string{nil, nil, nil, &testString},
 	},
 	MessagesY: []SubMessage{
 		{
-			Description:    "abcg",
-			Strings: []string{"8", "7", "6"},
+			Description: "abcg",
+			Strings:     []string{"8", "7", "6"},
 		},
 		{
 			Id:          5106,
 			Description: "abcgg",
-			Strings: []string{"9"},
+			Strings:     []string{"9"},
 		},
 	},
 	IsTrue:  &isTrue,
 	Payload: []byte(`"123"`),
 	Uint64:  999999,
 	AliasedSubmessage: AliasSubMessage(SubMessage{
-		Id: 444,
+		Id:      444,
 		Strings: []string{"9"},
 	}),
 	DoubleAliasedSubmessage: DoubleAliasSubMessage(AliasSubMessage(SubMessage{
 		Id:          321,
 		Description: "amazing",
-		Strings: []string{"9"},
+		Strings:     []string{"9"},
 	})),
 	ArrayAliasSubmessage: []AliasSubMessage{AliasSubMessage(SubMessage{
-		Id: 1,
-		Strings: []string{"9"},
+		Id:      1,
+		Strings: []string{"A"},
 	})},
 	AliasInt:        testAliasInt,
 	PointerAliasInt: &testAliasInt,

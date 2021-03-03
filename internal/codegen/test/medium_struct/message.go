@@ -9,6 +9,7 @@ type DoubleAliasInt AliasInt
 type Message struct {
 	Id          int
 	Name        string
+	Names []string
 	Ints        []*int
 	SubMessageX *SubMessage
 	MessagesX   []*SubMessage

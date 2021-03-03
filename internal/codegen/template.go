@@ -3,7 +3,6 @@ package codegen
 import (
 	"bytes"
 	"fmt"
-	"github.com/bradfitz/iter"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -53,21 +52,23 @@ var fieldTemplate = map[int]string{
 
 	decodeBaseTypeSlice: `
 
-{{.Accessor}} = make({{.Type}}, int(b.ReadUint64()))
+length = int(b.ReadUint64())
+if length > 0 {
+	{{.Accessor}} = make({{.Type}}, length)
 
-for i := range {{.Accessor}} {
+	for i := range {{.Accessor}} {
 
-	{{if .IsPointerComponent}}
-	if b.ReadBool() {
-		if ({{.Accessor}}[i] == nil) {
-			{{.Accessor}}[i] = new({{.ComponentType}})		
+		{{if .IsPointerComponent}}
+		if b.ReadBool() {
+			if ({{.Accessor}}[i] == nil) {
+				{{.Accessor}}[i] = new({{.ComponentType}})		
+			}
+			*{{.Accessor}}[i] = {{noPointer .ComponentType}}(b.{{.DecodingMethod}}())
 		}
-		*{{.Accessor}}[i] = {{noPointer .ComponentType}}(b.{{.DecodingMethod}}())
+		{{else}}
+			{{.Accessor}}[i] = {{.ComponentType}}(b.{{.DecodingMethod}}())
+		{{end}}
 	}
-	{{else}}
-		{{.Accessor}}[i] = {{.ComponentType}}(b.{{.DecodingMethod}}())
-	{{end}}
-
 }
 
 `,
@@ -123,20 +124,23 @@ for i := range {{if .IsPointer}}*{{end}}{{.Accessor}} {
 
 	decodeStructSlice: `
 
-{{.Accessor}} = make({{.RawType}}, int(b.ReadUint64()))
+length = int(b.ReadUint64())
+if length > 0 {
+	{{.Accessor}} = make({{.RawType}}, length)
 
-for i := range {{.Accessor}} {
+	for i := range {{.Accessor}} {
 
-	{{if .IsPointerComponent}}
-	if b.ReadBool() {
-		if ({{.Accessor}}[i] == nil) {
-			{{.Accessor}}[i] = new({{.ComponentType}})
+		{{if .IsPointerComponent}}
+		if b.ReadBool() {
+			if ({{.Accessor}}[i] == nil) {
+				{{.Accessor}}[i] = new({{.ComponentType}})
+			}
+			{{.Accessor}}[i].UnmarshalBuffer(b)
 		}
-		{{.Accessor}}[i].UnmarshalBuffer(b)
+		{{else}}
+			(*{{.ComponentType}})(&{{.Accessor}}[i]).UnmarshalBuffer(b)
+		{{end}}
 	}
-	{{else}}
-		(*{{.ComponentType}})(&{{.Accessor}}[i]).UnmarshalBuffer(b)
-	{{end}}
 }
 
 
@@ -187,11 +191,16 @@ import (
 	encodingStructType: `// MarshalBuffer implements MarshalerBuffer
 
 func ({{.Receiver}}) MarshalBuffer(b *encodegen.ObjBuffer) {
+
 {{.EncodingCases}}
 }
 
 // UnmarshalBuffer implements encodegen's UnmarshalerBuffer
 func ({{.Receiver}}) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+{{if .HasSlice}}
+var length int = 0
+{{end}}
+
 {{.InitEmbedded}}
 {{.DecodingCases}}	
 	return b.Err()
@@ -199,15 +208,6 @@ func ({{.Receiver}}) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 embeddedStructInit: `if {{.Accessor}} == nil { 
 		{{.Accessor}} = {{.Init}}
 	}`,
-}
-
-// for the template
-func minus(a int, b int) int {
-	return a - b
-}
-
-func plus(a int, b int) int {
-	return a + b
 }
 
 func noPointer(s string) string {
@@ -221,7 +221,7 @@ func expandTemplate(namespace string, dictionary map[int]string, key int, data i
 		return "", fmt.Errorf("failed to lookup template for %v.%v", namespace, key)
 	}
 	// add iter function to allow us to conveniently repeat code n times
-	temlate, err := template.New(id).Funcs(template.FuncMap{"N": iter.N, "minus": minus, "plus": plus, "noPointer": noPointer, "base": filepath.Base}).Parse(textTemplate)
+	temlate, err := template.New(id).Funcs(template.FuncMap{"noPointer": noPointer, "base": filepath.Base}).Parse(textTemplate)
 	if err != nil {
 		return "", fmt.Errorf("fiailed to parse template %v %v, due to %v", namespace, key, err)
 	}
