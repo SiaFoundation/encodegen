@@ -20,6 +20,11 @@ const (
 
 	decodeStructSlice
 	encodeStructSlice
+
+	decodeAliasBaseType
+	encodeAliasBaseType
+	decodeAliasStruct
+	encodeAliasStruct
 )
 
 var fieldTemplate = map[int]string{
@@ -165,6 +170,25 @@ if length > 0 {
 		{{end}}
 	}
 
+`, decodeAliasBaseType: `
+if {{.Accessor}} != nil {
+	*{{.Accessor}} = {{.Name}}({{.Derived}}(b.{{.ReadFunction}}()))
+}
+`,
+	encodeAliasBaseType: `
+if {{.Accessor}} != nil {
+	b.{{.WriteFunction}}({{.WriteCast}}({{.Derived}}(*{{.Accessor}})))
+}
+`,
+	decodeAliasStruct: `
+	if {{.Accessor}} != nil {
+		(*{{.Derived}})({{.Accessor}}).UnmarshalBuffer(b)
+	}
+`,
+	encodeAliasStruct: `
+	if {{.Accessor}} != nil {
+		(*{{.Derived}})({{.Accessor}}).MarshalBuffer(b)
+	}
 `,
 }
 

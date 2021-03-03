@@ -34,8 +34,10 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) 
 
 	if structInfo.IsDerived {
 		// if !isPrimitiveString(structInfo.Derived) && !isPrimitiveArrayString(structInfo.Derived) {
-		decodingCases, encodingCases = s.generateAliasCases(structInfo)
-		// }
+		decodingCases, encodingCases, err = s.generateAliasCases(structInfo)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	var data = struct {
@@ -67,17 +69,47 @@ func hasSlice(fields []*toolbox.FieldInfo) bool {
 	return false
 }
 
-/*
-The template system works on struct fields not structs and but these cases are very simple (we do not need any templating logic like if statements etc) so I decided to make them separate rather than add a bunch more code.
-If we have too many cases like these I will make it generic but currently I don't think it is a problem.
-*/
-func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo) ([]string, []string) {
+func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo) ([]string, []string, error) {
+	var newStructInfo = struct {
+		Accessor string
+		Derived string
+		Name string
+		ReadFunction string
+		WriteFunction string
+		WriteCast string
+	}{
+		Accessor: s.Alias,
+		Derived: structInfo.Derived,
+		Name: structInfo.Name,
+		ReadFunction: supportedPrimitives[structInfo.Derived].ReadFunction,
+		WriteFunction: supportedPrimitives[structInfo.Derived].WriteFunction,
+		WriteCast: supportedPrimitives[structInfo.Derived].WriteCast,
+	}
+
 	if !isPrimitiveString(structInfo.Derived) && !isPrimitiveArrayString(structInfo.Derived) {
-		return []string{fmt.Sprintf("(*%s)(%s).UnmarshalBuffer(b)", structInfo.Derived, s.Alias)}, []string{fmt.Sprintf("(*%s)(%s).MarshalBuffer(b)", structInfo.Derived, s.Alias)}
+		decode, err := expandFieldTemplate(decodeAliasStruct, newStructInfo)
+		if err != nil {
+			return nil, nil, err
+		}	
+		encode, err := expandFieldTemplate(encodeAliasStruct, newStructInfo)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return []string{decode}, []string{encode}, nil
 	} else {
-		primitiveType := supportedPrimitives[structInfo.Derived]
-		return []string{
-			fmt.Sprintf("*%s = %s(%s(b.%s()))", s.Alias, structInfo.Name, structInfo.Derived, primitiveType.ReadFunction)}, []string{fmt.Sprintf("b.%s(%s(%s(*%s)))", primitiveType.WriteFunction, primitiveType.WriteCast, structInfo.Derived, s.Alias)}
+		decode, err := expandFieldTemplate(decodeAliasBaseType, newStructInfo)
+		if err != nil {
+			return nil, nil, err
+		}	
+		encode, err := expandFieldTemplate(encodeAliasBaseType, newStructInfo)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return []string{decode}, []string{encode}, nil
+		// return []string{
+		// 	fmt.Sprintf("*%s = %s(%s(b.%s()))", s.Alias, structInfo.Name, structInfo.Derived, primitiveType.ReadFunction)}, []string{fmt.Sprintf("b.%s(%s(%s(*%s)))", primitiveType.WriteFunction, primitiveType.WriteCast, structInfo.Derived, s.Alias)}, nil
 	}
 }
 

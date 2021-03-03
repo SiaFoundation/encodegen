@@ -10,13 +10,19 @@ import (
 
 func (i *AliasInt) MarshalBuffer(b *encodegen.ObjBuffer) {
 
-	b.WriteUint64(uint64(int(*i)))
+	if i != nil {
+		b.WriteUint64(uint64(int(*i)))
+	}
+
 }
 
 // UnmarshalBuffer implements encodegen's UnmarshalerBuffer
 func (i *AliasInt) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
-	*i = AliasInt(int(b.ReadUint64()))
+	if i != nil {
+		*i = AliasInt(int(b.ReadUint64()))
+	}
+
 	return b.Err()
 }
 
@@ -24,13 +30,19 @@ func (i *AliasInt) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 func (m *AliasSubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
 
-	(*SubMessage)(m).MarshalBuffer(b)
+	if m != nil {
+		(*SubMessage)(m).MarshalBuffer(b)
+	}
+
 }
 
 // UnmarshalBuffer implements encodegen's UnmarshalerBuffer
 func (m *AliasSubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
-	(*SubMessage)(m).UnmarshalBuffer(b)
+	if m != nil {
+		(*SubMessage)(m).UnmarshalBuffer(b)
+	}
+
 	return b.Err()
 }
 
@@ -38,13 +50,19 @@ func (m *AliasSubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 func (i *DoubleAliasInt) MarshalBuffer(b *encodegen.ObjBuffer) {
 
-	(*AliasInt)(i).MarshalBuffer(b)
+	if i != nil {
+		(*AliasInt)(i).MarshalBuffer(b)
+	}
+
 }
 
 // UnmarshalBuffer implements encodegen's UnmarshalerBuffer
 func (i *DoubleAliasInt) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
-	(*AliasInt)(i).UnmarshalBuffer(b)
+	if i != nil {
+		(*AliasInt)(i).UnmarshalBuffer(b)
+	}
+
 	return b.Err()
 }
 
@@ -52,13 +70,19 @@ func (i *DoubleAliasInt) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 func (m *DoubleAliasSubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
 
-	(*AliasSubMessage)(m).MarshalBuffer(b)
+	if m != nil {
+		(*AliasSubMessage)(m).MarshalBuffer(b)
+	}
+
 }
 
 // UnmarshalBuffer implements encodegen's UnmarshalerBuffer
 func (m *DoubleAliasSubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
-	(*AliasSubMessage)(m).UnmarshalBuffer(b)
+	if m != nil {
+		(*AliasSubMessage)(m).UnmarshalBuffer(b)
+	}
+
 	return b.Err()
 }
 

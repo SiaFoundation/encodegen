@@ -1,5 +1,7 @@
 package medium_struct
 
+// import 	"gitlab.com/NebulousLabs/Sia/crypto"
+
 type DoubleAliasSubMessage AliasSubMessage
 type AliasSubMessage SubMessage
 
