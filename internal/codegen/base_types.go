@@ -16,7 +16,6 @@ type PrimitiveFunctions struct {
 	WriteCast     string
 }
 
-
 // all integer types are read as uint64 then casted to the appropriate type
 var Uint64PrimitiveFunctions = PrimitiveFunctions{
 	ReadFunction:  ReadIntFunction,

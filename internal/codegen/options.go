@@ -10,11 +10,11 @@ import (
 )
 
 type Options struct {
-	Source      string
-	Dest        string
-	Types       []string
-	TagName     string
-	Pkg         string
+	Source  string
+	Dest    string
+	Types   []string
+	TagName string
+	Pkg     string
 }
 
 func (o *Options) Validate() error {
@@ -28,10 +28,10 @@ func (o *Options) Validate() error {
 }
 
 const (
-	optionKeySource      = "s"
-	optionKeyDest        = "o"
-	optionKeyTypes       = "t"
-	optionKeyPkg         = "pkg"
+	optionKeySource = "s"
+	optionKeyDest   = "o"
+	optionKeyTypes  = "t"
+	optionKeyPkg    = "pkg"
 )
 
 //NewOptionsWithFlagSet creates a new options for the supplide flagset

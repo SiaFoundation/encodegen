@@ -22,7 +22,9 @@ func (s *Struct) Generate() (string, error) {
 }
 
 func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) {
-	var initEmbedded, decodingCases, err = s.generateFieldDecoding(structInfo.Fields())
+	hasSlice := fieldsHaveSlice(structInfo.Fields())
+
+	initEmbedded, decodingCases, err := s.generateFieldDecoding(structInfo.Fields())
 	if err != nil {
 		return "", err
 	}
@@ -33,34 +35,39 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) 
 	}
 
 	if structInfo.IsDerived {
-		// if !isPrimitiveString(structInfo.Derived) && !isPrimitiveArrayString(structInfo.Derived) {
 		decodingCases, encodingCases, err = s.generateAliasCases(structInfo)
 		if err != nil {
 			return "", err
 		}
+	} else if structInfo.ComponentType != "" {
+		decodingCases, encodingCases, err = s.generateAliasCases(structInfo)
+		if err != nil {
+			return "", err
+		}
+		hasSlice = true
 	}
 
 	var data = struct {
-		Receiver string
+		Receiver      string
 		Alias         string
 		InitEmbedded  string
 		EncodingCases string
 		DecodingCases string
 		FieldCount    int
-		HasSlice bool
+		HasSlice      bool
 	}{
-		Receiver: s.Alias + " *" + s.Name,
+		Receiver:      s.Alias + " *" + s.Name,
 		DecodingCases: strings.Join(decodingCases, "\n"),
 		EncodingCases: strings.Join(encodingCases, "\n"),
 		FieldCount:    len(decodingCases),
 		InitEmbedded:  initEmbedded,
 		Alias:         s.Alias,
-		HasSlice: hasSlice(structInfo.Fields()),
+		HasSlice:      hasSlice,
 	}
 	return expandBlockTemplate(encodingStructType, data)
 }
 
-func hasSlice(fields []*toolbox.FieldInfo) bool {
+func fieldsHaveSlice(fields []*toolbox.FieldInfo) bool {
 	for _, field := range fields {
 		if field.IsSlice {
 			return true
@@ -70,47 +77,63 @@ func hasSlice(fields []*toolbox.FieldInfo) bool {
 }
 
 func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo) ([]string, []string, error) {
+	var err error
+	var decodeKey int
+	var encodeKey int
 	var newStructInfo = struct {
-		Accessor string
-		Derived string
-		Name string
-		ReadFunction string
-		WriteFunction string
-		WriteCast string
+		Accessor           string
+		Derived            string
+		Name               string
+		DecodingMethod     string
+		EncodingMethod     string
+		PrimitiveWriteCast string
+		ComponentType      string
+		IsPointerComponent bool
 	}{
-		Accessor: s.Alias,
-		Derived: structInfo.Derived,
-		Name: structInfo.Name,
-		ReadFunction: supportedPrimitives[structInfo.Derived].ReadFunction,
-		WriteFunction: supportedPrimitives[structInfo.Derived].WriteFunction,
-		WriteCast: supportedPrimitives[structInfo.Derived].WriteCast,
+		Accessor:           s.Alias,
+		Derived:            structInfo.Derived,
+		Name:               structInfo.Name,
+		ComponentType:      structInfo.ComponentType,
+		IsPointerComponent: structInfo.IsPointerComponentType,
 	}
 
-	if !isPrimitiveString(structInfo.Derived) && !isPrimitiveArrayString(structInfo.Derived) {
-		decode, err := expandFieldTemplate(decodeAliasStruct, newStructInfo)
-		if err != nil {
-			return nil, nil, err
-		}	
-		encode, err := expandFieldTemplate(encodeAliasStruct, newStructInfo)
-		if err != nil {
-			return nil, nil, err
-		}
+	if (isPrimitiveString(structInfo.Derived) || isPrimitiveArrayString(structInfo.Derived)) || (isPrimitiveString(structInfo.ComponentType) || isPrimitiveArrayString(structInfo.ComponentType)) {
+		if structInfo.IsSlice {
+			newStructInfo.DecodingMethod = supportedPrimitives[structInfo.ComponentType].ReadFunction
+			newStructInfo.EncodingMethod = supportedPrimitives[structInfo.ComponentType].WriteFunction
+			newStructInfo.PrimitiveWriteCast = supportedPrimitives[structInfo.ComponentType].WriteCast
+			if structInfo.IsPointerComponentType {
+				newStructInfo.ComponentType = "*" + structInfo.ComponentType
+			}
+			decodeKey = decodeAliasBaseTypeSlice
+			encodeKey = encodeAliasBaseTypeSlice
+		} else {
+			newStructInfo.DecodingMethod = supportedPrimitives[structInfo.Derived].ReadFunction
+			newStructInfo.EncodingMethod = supportedPrimitives[structInfo.Derived].WriteFunction
+			newStructInfo.PrimitiveWriteCast = supportedPrimitives[structInfo.Derived].WriteCast
 
-		return []string{decode}, []string{encode}, nil
+			decodeKey = decodeAliasBaseType
+			encodeKey = encodeAliasBaseType
+		}
 	} else {
-		decode, err := expandFieldTemplate(decodeAliasBaseType, newStructInfo)
-		if err != nil {
-			return nil, nil, err
-		}	
-		encode, err := expandFieldTemplate(encodeAliasBaseType, newStructInfo)
-		if err != nil {
-			return nil, nil, err
+		if structInfo.IsSlice {
+			decodeKey = decodeAliasStructSlice
+			encodeKey = encodeAliasStructSlice
+		} else {
+			decodeKey = decodeAliasStruct
+			encodeKey = encodeAliasStruct
 		}
-
-		return []string{decode}, []string{encode}, nil
-		// return []string{
-		// 	fmt.Sprintf("*%s = %s(%s(b.%s()))", s.Alias, structInfo.Name, structInfo.Derived, primitiveType.ReadFunction)}, []string{fmt.Sprintf("b.%s(%s(%s(*%s)))", primitiveType.WriteFunction, primitiveType.WriteCast, structInfo.Derived, s.Alias)}, nil
 	}
+
+	decode, err := expandFieldTemplate(decodeKey, newStructInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+	encode, err := expandFieldTemplate(encodeKey, newStructInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+	return []string{decode}, []string{encode}, nil
 }
 
 func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []string, error) {
@@ -166,8 +189,9 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []s
 				}
 
 				if isPrimitiveString(fieldTypeInfo.ComponentType) {
-					s.generatePrimitiveArray(field)
-					templateKey = decodeBaseTypeSlice
+					// s.generatePrimitiveArray(field)
+					// templateKey = decodeBaseTypeSlice
+					templateKey = decodeStruct
 					break main
 
 				}
@@ -176,21 +200,24 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []s
 					return "", nil, err
 				}
 
-				templateKey = decodeStructSlice
-				if err = s.generateObjectArray(field); err != nil {
-					return "", nil, err
-				}
-
-				break main
-			} else if field.IsSlice {
+				if field.ComponentType != "" {
+					// templateKey = decodeStruct
 					templateKey = decodeStructSlice
 					if err = s.generateObjectArray(field); err != nil {
 						return "", nil, err
 					}
+				} else {
+					templateKey = decodeStruct
+				}
+
+				break main
+			} else if field.IsSlice {
+				templateKey = decodeStructSlice
+				if err = s.generateObjectArray(field); err != nil {
+					return "", nil, err
+				}
 			} else {
-				// templateKey = decodeUnknown
 				templateKey = decodeStruct
-				// return "", nil, fmt.Errorf("Unknown type %s for field %s", field.Type, field.Name)
 			}
 		}
 		if templateKey != -1 {
@@ -255,19 +282,20 @@ func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo) ([]string, e
 					templateKey = encodeStruct
 					break main
 				}
-				switch {
-				case isPrimitiveString(fieldTypeInfo.ComponentType):
-					templateKey = decodeBaseTypeSlice
+				if isPrimitiveString(fieldTypeInfo.ComponentType) {
+					templateKey = encodeStruct
 					break main
 				}
-				templateKey = encodeStructSlice
+				if field.ComponentType != "" {
+					templateKey = encodeStructSlice
+				} else {
+					templateKey = encodeStruct
+				}
 				break main
 			} else if field.IsSlice {
 				templateKey = encodeStructSlice
 			} else {
-				// templateKey = encodeUnknown
 				templateKey = encodeStruct
-				// return nil, fmt.Errorf("Unknown type %s for field %s", field.Type, field.Name)
 			}
 		}
 		if templateKey != -1 {

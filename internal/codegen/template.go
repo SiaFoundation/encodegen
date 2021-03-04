@@ -25,10 +25,16 @@ const (
 	encodeAliasBaseType
 	decodeAliasStruct
 	encodeAliasStruct
+
+	decodeAliasBaseTypeSlice
+	encodeAliasBaseTypeSlice
+	decodeAliasStructSlice
+	encodeAliasStructSlice
 )
 
 var fieldTemplate = map[int]string{
 	decodeBaseType: `
+
 {{if .IsPointer}}
 	if b.ReadBool() {
 		if ({{.Accessor}} == nil) {
@@ -140,7 +146,7 @@ if length > 0 {
 			if ({{.Accessor}}[i] == nil) {
 				{{.Accessor}}[i] = new({{.ComponentType}})
 			}
-			{{.Accessor}}[i].UnmarshalBuffer(b)
+			{{noPointer .Accessor}}[i].UnmarshalBuffer(b)
 		}
 		{{else}}
 			(*{{.ComponentType}})(&{{.Accessor}}[i]).UnmarshalBuffer(b)
@@ -153,42 +159,133 @@ if length > 0 {
 
 	encodeStructSlice: `
 
-	b.WriteUint64(uint64(len({{if .IsPointer}}*{{end}}{{.Accessor}})))
+b.WriteUint64(uint64(len({{if .IsPointer}}*{{end}}{{.Accessor}})))
 
-	for i := range {{if .IsPointer}}*{{end}}{{.Accessor}} {
+for i := range {{if .IsPointer}}*{{end}}{{.Accessor}} {
+	{{if .IsPointerComponent}}
+	if {{.Accessor}}[i] != nil {
+		b.WriteBool(true)
+	{{end}}
+
+	{{noPointer .Accessor}}[i].MarshalBuffer(b)
+
+	{{if .IsPointerComponent}}
+	} else {
+		b.WriteBool(false)
+	}
+	{{end}}
+}
+
+`, decodeAliasBaseType: `
+
+*{{.Accessor}} = {{.Name}}({{.Derived}}(b.{{.DecodingMethod}}()))
+
+`, decodeAliasBaseTypeSlice: `
+
+length = int(b.ReadUint64())
+if length > 0 {
+	temp := make([]{{.ComponentType}}, length)
+
+	for i := range temp {
+
 		{{if .IsPointerComponent}}
-		if {{.Accessor}}[i] != nil {
-			b.WriteBool(true)
-		{{end}}
-
-		{{.Accessor}}[i].MarshalBuffer(b)
-
-		{{if .IsPointerComponent}}
-		} else {
-			b.WriteBool(false)
+		if b.ReadBool() {
+			if temp[i] == nil {
+				temp[i] = new({{noPointer .ComponentType}})		
+			}
+			*temp[i] = {{noPointer .ComponentType}}(b.{{.DecodingMethod}}())
 		}
+		{{else}}
+			temp[i] = {{.ComponentType}}(b.{{.DecodingMethod}}())
 		{{end}}
 	}
 
-`, decodeAliasBaseType: `
-if {{.Accessor}} != nil {
-	*{{.Accessor}} = {{.Name}}({{.Derived}}(b.{{.ReadFunction}}()))
+	*{{.Accessor}} = {{.Name}}(temp)
+}
+`, encodeAliasBaseTypeSlice: `
+
+b.WriteUint64(uint64(len(*{{.Accessor}})))
+
+temp := []{{.ComponentType}}(*{{.Accessor}})
+
+for i := range temp {
+	{{if .IsPointerComponent}}
+	if temp[i] != nil {
+		b.WriteBool(true)
+
+		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}(*temp[i]))
+
+	{{else}}
+		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}(temp[i]))
+	{{end}}
+
+	{{if .IsPointerComponent}}
+	} else {
+		b.WriteBool(false)
+	}
+	{{end}}
 }
 `,
 	encodeAliasBaseType: `
-if {{.Accessor}} != nil {
-	b.{{.WriteFunction}}({{.WriteCast}}({{.Derived}}(*{{.Accessor}})))
-}
+
+b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{.Derived}}(*{{.Accessor}})))
+
 `,
 	decodeAliasStruct: `
-	if {{.Accessor}} != nil {
-		(*{{.Derived}})({{.Accessor}}).UnmarshalBuffer(b)
-	}
+
+(*{{.Derived}})({{.Accessor}}).UnmarshalBuffer(b)
+
 `,
 	encodeAliasStruct: `
-	if {{.Accessor}} != nil {
-		(*{{.Derived}})({{.Accessor}}).MarshalBuffer(b)
+
+(*{{.Derived}})({{.Accessor}}).MarshalBuffer(b)
+
+`,
+	decodeAliasStructSlice: `
+
+length = int(b.ReadUint64())
+if length > 0 {
+	temp := make([]{{if .IsPointerComponent}}*{{end}}{{.ComponentType}}, length)
+
+	for i := range temp {
+
+		{{if .IsPointerComponent}}
+		if b.ReadBool() {
+			temp[i] = new({{noPointer .ComponentType}})		
+			(*{{.ComponentType}})(temp[i]).UnmarshalBuffer(b)
+
+		}
+		{{else}}
+			(*{{.ComponentType}})(&temp[i]).UnmarshalBuffer(b)
+		{{end}}
 	}
+
+	*{{.Accessor}} = {{.Name}}(temp)
+}
+
+`, encodeAliasStructSlice: `
+
+b.WriteUint64(uint64(len(*{{.Accessor}})))
+
+temp := []{{if .IsPointerComponent}}*{{end}}{{.ComponentType}}(*{{.Accessor}})
+
+for i := range temp {
+	{{if .IsPointerComponent}}
+	if temp[i] != nil {
+		b.WriteBool(true)
+
+		(*{{.ComponentType}})(temp[i]).MarshalBuffer(b)
+
+	{{else}}
+		(*{{.ComponentType}})(&temp[i]).MarshalBuffer(b)
+	{{end}}
+
+	{{if .IsPointerComponent}}
+	} else {
+		b.WriteBool(false)
+	}
+	{{end}}
+}
 `,
 }
 
@@ -215,27 +312,32 @@ import (
 	encodingStructType: `// MarshalBuffer implements MarshalerBuffer
 
 func ({{.Receiver}}) MarshalBuffer(b *encodegen.ObjBuffer) {
+if {{.Alias}} != nil {
+	{{.EncodingCases}}
+}
 
-{{.EncodingCases}}
 }
 
 // UnmarshalBuffer implements encodegen's UnmarshalerBuffer
 func ({{.Receiver}}) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
-{{if .HasSlice}}
-var length int = 0
-{{end}}
 
-{{.InitEmbedded}}
-{{.DecodingCases}}	
+if {{.Alias}} != nil {
+	{{if .HasSlice}}
+	var length int = 0
+	{{end}}
+
+	{{.InitEmbedded}}
+	{{.DecodingCases}}	
+}
 	return b.Err()
 }`,
-embeddedStructInit: `if {{.Accessor}} == nil { 
+	embeddedStructInit: `if {{.Accessor}} == nil { 
 		{{.Accessor}} = {{.Init}}
 	}`,
 }
 
 func noPointer(s string) string {
-	return strings.Replace(s, "*", "", -1)
+	return strings.TrimPrefix(s, "*")
 }
 
 func expandTemplate(namespace string, dictionary map[int]string, key int, data interface{}) (string, error) {
@@ -251,6 +353,7 @@ func expandTemplate(namespace string, dictionary map[int]string, key int, data i
 	}
 	writer := new(bytes.Buffer)
 	err = temlate.Execute(writer, data)
+	// fmt.Printf("Call template with key, %d, data: %+v\n", key, data)
 	return writer.String(), err
 }
 

@@ -14,17 +14,17 @@ const encodingPackage = "go.sia.tech/encodegen/pkg/encodegen"
 
 // Generator holds the content to generate the gojay code
 type Generator struct {
-	fileInfo      *toolbox.FileSetInfo
-	types         map[string]string
-	structTypes   map[string]string
-	sliceTypes    map[string]string
-	imports       map[string]bool
-	filedInit     []string
-	Pkg           string
-	Code          string
-	Init          string
-	Imports       string
-	options       *Options
+	fileInfo    *toolbox.FileSetInfo
+	types       map[string]string
+	structTypes map[string]string
+	sliceTypes  map[string]string
+	imports     map[string]bool
+	filedInit   []string
+	Pkg         string
+	Code        string
+	Init        string
+	Imports     string
+	options     *Options
 }
 
 // Returns the type from the the fileInfo

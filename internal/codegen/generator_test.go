@@ -29,9 +29,9 @@ func TestGenerator_Generate(t *testing.T) {
 		{
 			description: "basic struct with more features utilizited",
 			options: &Options{
-				Source:      path.Join(parent, "medium_struct"),
-				Types:       []string{"Message"},
-				Dest:        path.Join(parent, "medium_struct", "encoding.go"),
+				Source: path.Join(parent, "alias_struct"),
+				Types:  []string{"Message"},
+				Dest:   path.Join(parent, "alias_struct", "encoding.go"),
 			},
 		},
 	}

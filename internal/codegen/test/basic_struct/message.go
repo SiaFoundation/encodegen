@@ -10,5 +10,6 @@ type Message struct {
 	MessagesY   []SubMessage
 	IsTrue      *bool
 	Payload     []byte
+	Strings     []string
 	// SQLNullString *sql.NullString
 }

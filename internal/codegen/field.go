@@ -10,21 +10,21 @@ import (
 type Field struct {
 	Accessor           string
 	Alias              string //object in function (un)marshaler definition
-	AliasDerived string // if the type is a type alias the original type goes here
+	Derived            string // if the type is a type alias the original type goes here
 	Type               string
 	RawType            string
 	ComponentType      string
 	RawComponentType   string
 	IsPointerComponent bool
 
-	DecodingMethod     string
-	EncodingMethod     string
+	DecodingMethod string
+	EncodingMethod string
 
 	PrimitiveWriteCast string
 
-	IsAnonymous     bool
-	IsPointer       bool
-	IsSlice         bool
+	IsAnonymous bool
+	IsPointer   bool
+	IsSlice     bool
 }
 
 //NewField returns a new field
@@ -42,7 +42,7 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 	}
 
 	if fieldType != nil && fieldType.Derived != "" {
-		result.AliasDerived = fieldType.Derived
+		result.Derived = fieldType.Derived
 	}
 
 	if field.IsPointer {
@@ -88,5 +88,6 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 		result.RawComponentType = result.ComponentType
 	}
 
+	// fmt.Printf("%+v\n", result)
 	return result, nil
 }
