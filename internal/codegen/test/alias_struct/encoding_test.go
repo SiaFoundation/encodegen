@@ -39,6 +39,17 @@ var msg = Message{
 		&testSubMessage,
 		nil,
 	}),
+	ArrayAliasSubMessagePointerArrayField: []AliasSubMessagePointerArray{AliasSubMessagePointerArray([]*SubMessage{
+		nil,
+		nil,
+		nil,
+		&testSubMessage,
+		nil,
+		&testSubMessage,
+		&testSubMessage,
+		&testSubMessage,
+		nil,
+	}), nil, nil},
 }
 
 func TestMessage(t *testing.T) {

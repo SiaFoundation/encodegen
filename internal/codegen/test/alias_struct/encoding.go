@@ -334,6 +334,14 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		(*AliasSubMessagePointerArray)(&m.AliasSubMessagePointerArrayField).MarshalBuffer(b)
 
+		b.WriteUint64(uint64(len(m.ArrayAliasSubMessagePointerArrayField)))
+
+		for i := range m.ArrayAliasSubMessagePointerArrayField {
+
+			m.ArrayAliasSubMessagePointerArrayField[i].MarshalBuffer(b)
+
+		}
+
 		(*DoubleAliasInt)(&m.DoubleAliasIntField).MarshalBuffer(b)
 
 	}
@@ -389,6 +397,17 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 		(*AliasSubMessageArray)(&m.AliasSubMessageArrayField).UnmarshalBuffer(b)
 
 		(*AliasSubMessagePointerArray)(&m.AliasSubMessagePointerArrayField).UnmarshalBuffer(b)
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			m.ArrayAliasSubMessagePointerArrayField = make([]AliasSubMessagePointerArray, length)
+
+			for i := range m.ArrayAliasSubMessagePointerArrayField {
+
+				(*AliasSubMessagePointerArray)(&m.ArrayAliasSubMessagePointerArrayField[i]).UnmarshalBuffer(b)
+
+			}
+		}
 
 		(*DoubleAliasInt)(&m.DoubleAliasIntField).UnmarshalBuffer(b)
 

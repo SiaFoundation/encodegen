@@ -73,7 +73,6 @@ func (g *Generator) Generate() error {
 		}
 	}
 
-	//
 	g.Imports = strings.Join(toolbox.MapKeysToStringSlice(g.imports), "\n")
 	return g.writeCode()
 }
@@ -159,7 +158,8 @@ func (g *Generator) generateStructCode(structType string) error {
 		return nil
 	}
 
-	if _, hasCode := g.structTypes[structType]; hasCode {
+	_, hasCode := g.structTypes[structType]
+	if hasCode {
 		return nil
 	}
 
@@ -180,8 +180,8 @@ func (g *Generator) readPackageCode(pkgPath string) error {
 		return err
 	}
 
-	var f os.FileInfo
-	if f, err = os.Stat(p); err != nil {
+	f, err := os.Stat(p)
+	if err != nil {
 		// path/to/whatever does not exist
 		return err
 	}

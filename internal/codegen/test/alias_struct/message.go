@@ -14,17 +14,18 @@ type AliasSubMessageArray []SubMessage
 type AliasSubMessagePointerArray []*SubMessage
 
 type Message struct {
-	Id                                int
-	Sub                               SubMessage
-	AliasSubMessageField              AliasSubMessage
-	ArrayAliasSubMessageField         []AliasSubMessage
-	DoubleAliasSubMessageField        DoubleAliasSubMessage
-	PointerDoubleAliasSubMessageField *DoubleAliasSubMessage
-	AliasIntField                     AliasInt
-	PointerAliasIntField              *AliasInt
-	AliasIntArrayField                AliasIntArray
-	AliasIntPointerArrayField         AliasIntPointerArray
-	AliasSubMessageArrayField         AliasSubMessageArray
-	AliasSubMessagePointerArrayField  AliasSubMessagePointerArray
-	DoubleAliasIntField               DoubleAliasInt
+	Id                                    int
+	Sub                                   SubMessage
+	AliasSubMessageField                  AliasSubMessage
+	ArrayAliasSubMessageField             []AliasSubMessage
+	DoubleAliasSubMessageField            DoubleAliasSubMessage
+	PointerDoubleAliasSubMessageField     *DoubleAliasSubMessage
+	AliasIntField                         AliasInt
+	PointerAliasIntField                  *AliasInt
+	AliasIntArrayField                    AliasIntArray
+	AliasIntPointerArrayField             AliasIntPointerArray
+	AliasSubMessageArrayField             AliasSubMessageArray
+	AliasSubMessagePointerArrayField      AliasSubMessagePointerArray
+	ArrayAliasSubMessagePointerArrayField []AliasSubMessagePointerArray
+	DoubleAliasIntField                   DoubleAliasInt
 }

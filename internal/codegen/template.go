@@ -245,14 +245,14 @@ b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{.Derived}}(*{{.Accessor}})))
 
 length = int(b.ReadUint64())
 if length > 0 {
-	temp := make([]{{if .IsPointerComponent}}*{{end}}{{.ComponentType}}, length)
+	temp := make([]{{.ComponentType}}, length)
 
 	for i := range temp {
 
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
 			temp[i] = new({{noPointer .ComponentType}})		
-			(*{{.ComponentType}})(temp[i]).UnmarshalBuffer(b)
+			({{.ComponentType}})(temp[i]).UnmarshalBuffer(b)
 
 		}
 		{{else}}
@@ -267,14 +267,14 @@ if length > 0 {
 
 b.WriteUint64(uint64(len(*{{.Accessor}})))
 
-temp := []{{if .IsPointerComponent}}*{{end}}{{.ComponentType}}(*{{.Accessor}})
+temp := []{{.ComponentType}}(*{{.Accessor}})
 
 for i := range temp {
 	{{if .IsPointerComponent}}
 	if temp[i] != nil {
 		b.WriteBool(true)
 
-		(*{{.ComponentType}})(temp[i]).MarshalBuffer(b)
+		({{.ComponentType}})(temp[i]).MarshalBuffer(b)
 
 	{{else}}
 		(*{{.ComponentType}})(&temp[i]).MarshalBuffer(b)

@@ -22,15 +22,15 @@ type Field struct {
 
 	PrimitiveWriteCast string
 
-	IsAnonymous bool
 	IsPointer   bool
 	IsSlice     bool
 }
 
 //NewField returns a new field
 func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeInfo) (*Field, error) {
-	var result = &Field{
-		IsAnonymous:        field.IsAnonymous,
+	// fmt.Printf("\nOwner: {%+v}\nField: {%+v}\nFieldType: {%+v}\n", owner, field, fieldType)
+
+	result := &Field{
 		RawType:            field.TypeName,
 		IsPointer:          field.IsPointer,
 		Type:               field.TypeName,
@@ -41,8 +41,11 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 		Alias:              owner.Alias,
 	}
 
-	if fieldType != nil && fieldType.Derived != "" {
-		result.Derived = fieldType.Derived
+	if fieldType != nil {
+		// alias
+		if fieldType.Derived != "" {
+			result.Derived = fieldType.Derived
+		}
 	}
 
 	if field.IsPointer {
@@ -70,13 +73,13 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 		result.ComponentType = field.ComponentType
 	}
 
-	encodingMethod := field.ComponentType
-	if encodingMethod == "" {
-		encodingMethod = result.Type
+	componentType := field.ComponentType
+	if componentType == "" {
+		componentType = result.Type
 	}
 
-	if isPrimitiveString(encodingMethod) {
-		primitive := supportedPrimitives[encodingMethod]
+	if isPrimitiveString(componentType) {
+		primitive := supportedPrimitives[componentType]
 		result.EncodingMethod = primitive.WriteFunction
 		result.DecodingMethod = primitive.ReadFunction
 		result.PrimitiveWriteCast = primitive.WriteCast
@@ -88,6 +91,5 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 		result.RawComponentType = result.ComponentType
 	}
 
-	// fmt.Printf("%+v\n", result)
 	return result, nil
 }

@@ -27,11 +27,19 @@ func TestGenerator_Generate(t *testing.T) {
 		},
 
 		{
-			description: "basic struct with more features utilizited",
+			description: "struct composed of a bunch of different aliased types",
 			options: &Options{
 				Source: path.Join(parent, "alias_struct"),
 				Types:  []string{"Message"},
 				Dest:   path.Join(parent, "alias_struct", "encoding.go"),
+			},
+		},
+		{
+			description: "struct with anonymous struct in it",
+			options: &Options{
+				Source: path.Join(parent, "embedded_struct"),
+				Types:  []string{"Message"},
+				Dest:   path.Join(parent, "embedded_struct", "encoding.go"),
 			},
 		},
 	}

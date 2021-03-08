@@ -16,7 +16,7 @@ type Struct struct {
 	Body  string
 }
 
-//Generate generates decoderCode + structRelease + encoderCode
+//Generate generates decoderCode + encoderCode
 func (s *Struct) Generate() (string, error) {
 	return s.generateEncoding(s.TypeInfo)
 }
@@ -96,15 +96,15 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo) ([]string, []s
 		ComponentType:      structInfo.ComponentType,
 		IsPointerComponent: structInfo.IsPointerComponentType,
 	}
+	if structInfo.IsPointerComponentType {
+		newStructInfo.ComponentType = "*" + structInfo.ComponentType
+	}
 
 	if (isPrimitiveString(structInfo.Derived) || isPrimitiveArrayString(structInfo.Derived)) || (isPrimitiveString(structInfo.ComponentType) || isPrimitiveArrayString(structInfo.ComponentType)) {
 		if structInfo.IsSlice {
 			newStructInfo.DecodingMethod = supportedPrimitives[structInfo.ComponentType].ReadFunction
 			newStructInfo.EncodingMethod = supportedPrimitives[structInfo.ComponentType].WriteFunction
 			newStructInfo.PrimitiveWriteCast = supportedPrimitives[structInfo.ComponentType].WriteCast
-			if structInfo.IsPointerComponentType {
-				newStructInfo.ComponentType = "*" + structInfo.ComponentType
-			}
 			decodeKey = decodeAliasBaseTypeSlice
 			encodeKey = encodeAliasBaseTypeSlice
 		} else {
@@ -148,28 +148,10 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []s
 			return "", nil, err
 		}
 		if fieldTypeInfo != nil {
-			if err = s.generateStructCode(fieldTypeInfo.Name); err != nil {
+			err = s.generateStructCode(fieldTypeInfo.Name)
+			if err != nil {
 				return "", nil, err
 			}
-		}
-
-		if field.IsAnonymous {
-			if fieldTypeInfo != nil {
-				if field.IsPointer {
-					init, err := expandBlockTemplate(embeddedStructInit, field)
-					if err != nil {
-						return "", nil, err
-					}
-					initCode += init
-				}
-				init, embeddedCases, err := s.generateFieldDecoding(fieldTypeInfo.Fields())
-				if err != nil {
-					return "", nil, err
-				}
-				initCode += init
-				fieldCases = append(fieldCases, embeddedCases...)
-			}
-			continue
 		}
 
 	main:
@@ -217,7 +199,8 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []s
 					return "", nil, err
 				}
 			} else {
-				templateKey = decodeStruct
+				// templateKey = decodeStruct
+				continue
 			}
 		}
 		if templateKey != -1 {
@@ -261,14 +244,6 @@ func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo) ([]string, e
 		if err != nil {
 			return nil, err
 		}
-		if field.IsAnonymous {
-			embedded, err := s.generateEmbeddedFieldEncoding(field, fieldTypeInfo)
-			if err != nil {
-				return nil, err
-			}
-			fieldCases = append(fieldCases, embedded...)
-			continue
-		}
 	main:
 		switch {
 		case isPrimitiveString(field.Type):
@@ -295,7 +270,9 @@ func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo) ([]string, e
 			} else if field.IsSlice {
 				templateKey = encodeStructSlice
 			} else {
-				templateKey = encodeStruct
+				// anonymous struct
+				// templateKey = encodeStruct
+				continue
 			}
 		}
 		if templateKey != -1 {
