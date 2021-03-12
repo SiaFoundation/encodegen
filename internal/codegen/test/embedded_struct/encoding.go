@@ -8,6 +8,28 @@ import (
 
 // MarshalBuffer implements MarshalerBuffer
 
+func (m *AliasSubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if m != nil {
+
+		(*SubMessage)(m).MarshalBuffer(b)
+
+	}
+
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (m *AliasSubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+
+	if m != nil {
+
+		(*SubMessage)(m).UnmarshalBuffer(b)
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+
 func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 	if m != nil {
 
@@ -26,6 +48,48 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 		}
 
 		(*SubMessage)(&m.Anonymous.Sub).MarshalBuffer(b)
+
+		(*AliasSubMessage)(&m.Anonymous.AliasSub).MarshalBuffer(b)
+
+		b.WriteUint64(uint64(m.Anonymous.Anonymous3.A))
+
+		b.WriteUint64(uint64(m.Anonymous.Anonymous3.Anonymous4.B))
+
+		if m.Anonymous.Anonymous3.Anonymous4.Anonymous5 != nil {
+			b.WriteBool(true)
+
+			if m.Anonymous.Anonymous3.Anonymous4.Anonymous5.WWW != nil {
+				b.WriteBool(true)
+
+				b.WriteUint64(uint64(*m.Anonymous.Anonymous3.Anonymous4.Anonymous5.WWW))
+
+			} else {
+				b.WriteBool(false)
+			}
+
+		} else {
+			b.WriteBool(false)
+		}
+
+		b.WriteUint64(uint64(m.Anonymous.Anonymous3.C))
+
+		if m.Anonymous2 != nil {
+			b.WriteBool(true)
+
+			b.WriteUint64(uint64(m.Anonymous2.IntegerField))
+
+			if m.Anonymous2.Anonymous3 != nil {
+				b.WriteBool(true)
+
+				b.WriteUint64(uint64(m.Anonymous2.Anonymous3.A))
+
+			} else {
+				b.WriteBool(false)
+			}
+
+		} else {
+			b.WriteBool(false)
+		}
 
 		b.WriteUint64(uint64(m.End))
 
@@ -58,6 +122,51 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 		}
 
 		(*SubMessage)(&m.Anonymous.Sub).UnmarshalBuffer(b)
+
+		(*AliasSubMessage)(&m.Anonymous.AliasSub).UnmarshalBuffer(b)
+
+		m.Anonymous.Anonymous3.A = int(b.ReadUint64())
+
+		m.Anonymous.Anonymous3.Anonymous4.B = int(b.ReadUint64())
+
+		if b.ReadBool() {
+			if m.Anonymous.Anonymous3.Anonymous4.Anonymous5 == nil {
+				m.Anonymous.Anonymous3.Anonymous4.Anonymous5 = new(struct {
+					WWW        *int
+					Anonymous6 struct{}
+				})
+			}
+
+			if b.ReadBool() {
+				if m.Anonymous.Anonymous3.Anonymous4.Anonymous5.WWW == nil {
+					m.Anonymous.Anonymous3.Anonymous4.Anonymous5.WWW = new(int)
+				}
+				*m.Anonymous.Anonymous3.Anonymous4.Anonymous5.WWW = int(b.ReadUint64())
+			}
+
+		}
+
+		m.Anonymous.Anonymous3.C = int(b.ReadUint64())
+
+		if b.ReadBool() {
+			if m.Anonymous2 == nil {
+				m.Anonymous2 = new(struct {
+					IntegerField int
+					Anonymous3   *struct{ A int }
+				})
+			}
+
+			m.Anonymous2.IntegerField = int(b.ReadUint64())
+
+			if b.ReadBool() {
+				if m.Anonymous2.Anonymous3 == nil {
+					m.Anonymous2.Anonymous3 = new(struct{ A int })
+				}
+
+				m.Anonymous2.Anonymous3.A = int(b.ReadUint64())
+
+			}
+		}
 
 		m.End = int(b.ReadUint64())
 

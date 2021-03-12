@@ -7,19 +7,36 @@ import (
 	"testing"
 )
 
+var anonymous3Struct = struct{ A int }{A: 5000}
+
+var anonymous2Struct = struct {
+	IntegerField int
+	Anonymous3   *struct {
+		A int
+	}
+}{
+	5555,
+	&anonymous3Struct,
+}
+
 var msg = Message{
 	Id: 1022,
-	Anonymous: struct {
-		IntegerField      int
-		StringField       string
-		IntegerSliceField []int
-		Sub               SubMessage
-	}{
-		5000,
-		"AAA",
-		[]int{5, 5, 5, 5},
-		SubMessage{Id: 999},
-	},
+	// Anonymous: struct {
+	// 	IntegerField      int
+	// 	StringField       string
+	// 	IntegerSliceField []int
+	// 	Sub               SubMessage
+	// 	AliasSub          AliasSubMessage
+	// }{
+	// 	5000,
+	// 	"AAA",
+	// 	[]int{5, 5, 5, 5},
+	// 	SubMessage{Id: 999},
+	// 	AliasSubMessage(SubMessage{Id: 999}),
+	// },
+	Anonymous2: &anonymous2Struct,
+	// Anonymous2: nil,
+	End: -7222,
 }
 
 func TestMessage(t *testing.T) {

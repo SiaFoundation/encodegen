@@ -326,7 +326,6 @@ if {{.Alias}} != nil {
 	var length int = 0
 	{{end}}
 
-	{{.InitEmbedded}}
 	{{.DecodingCases}}	
 }
 	return b.Err()

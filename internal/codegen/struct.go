@@ -2,9 +2,8 @@ package codegen
 
 import (
 	"fmt"
+	"go.sia.tech/encodegen/internal/toolbox"
 	"strings"
-
-	"github.com/viant/toolbox"
 )
 
 type Struct struct {
@@ -24,12 +23,12 @@ func (s *Struct) Generate() (string, error) {
 func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) {
 	hasSlice := fieldsHaveSlice(structInfo.Fields())
 
-	initEmbedded, decodingCases, err := s.generateFieldDecoding(structInfo.Fields())
+	decodingCases, err := s.generateFieldDecoding(structInfo.Fields(), "")
 	if err != nil {
 		return "", err
 	}
 
-	encodingCases, err := s.generateFieldEncoding(structInfo.Fields())
+	encodingCases, err := s.generateFieldEncoding(structInfo.Fields(), "")
 	if err != nil {
 		return "", err
 	}
@@ -50,7 +49,6 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) 
 	var data = struct {
 		Receiver      string
 		Alias         string
-		InitEmbedded  string
 		EncodingCases string
 		DecodingCases string
 		FieldCount    int
@@ -60,7 +58,6 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) 
 		DecodingCases: strings.Join(decodingCases, "\n"),
 		EncodingCases: strings.Join(encodingCases, "\n"),
 		FieldCount:    len(decodingCases),
-		InitEmbedded:  initEmbedded,
 		Alias:         s.Alias,
 		HasSlice:      hasSlice,
 	}
@@ -71,6 +68,12 @@ func fieldsHaveSlice(fields []*toolbox.FieldInfo) bool {
 	for _, field := range fields {
 		if field.IsSlice {
 			return true
+		}
+		if len(field.AnonymousChildFields) > 0 {
+			hasSlice := fieldsHaveSlice(field.AnonymousChildFields)
+			if hasSlice {
+				return hasSlice
+			}
 		}
 	}
 	return false
@@ -136,22 +139,52 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo) ([]string, []s
 	return []string{decode}, []string{encode}, nil
 }
 
-func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []string, error) {
-
+func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo, anonymousPrefix string) ([]string, error) {
 	fieldCases := []string{}
-	var initCode = ""
 	for i := range fields {
-		var templateKey = -1
-		fieldTypeInfo := s.Type(fields[i].TypeName)
-		field, err := NewField(s, fields[i], fieldTypeInfo)
-		if err != nil {
-			return "", nil, err
+		templateKey := -1
+
+		// dont modify the original
+		fieldCopy := *fields[i]
+
+		fieldTypeInfo := s.Type(fieldCopy.TypeName)
+		if len(anonymousPrefix) > 0 {
+			fieldCopy.Name = anonymousPrefix + "." + fieldCopy.Name
 		}
+
+		field, err := NewField(s, &fieldCopy, fieldTypeInfo)
+		if err != nil {
+			return nil, err
+		}
+
 		if fieldTypeInfo != nil {
 			err = s.generateStructCode(fieldTypeInfo.Name)
 			if err != nil {
-				return "", nil, err
+				return nil, err
 			}
+		}
+
+		if len(field.AnonymousChildFields) > 0 {
+			oldPrefix := anonymousPrefix
+			anonymousPrefix = fieldCopy.Name
+			anonymousCases, err := s.generateFieldDecoding(field.AnonymousChildFields, anonymousPrefix)
+			if err != nil {
+				return nil, err
+			}
+			anonymousPrefix = oldPrefix
+			if field.IsPointer {
+				fieldCases = append(fieldCases, fmt.Sprintf(`
+				if b.ReadBool() {
+					if %s == nil {
+						%s = new(%s)
+					}
+				`, field.Accessor, field.Accessor, noPointer(field.Type)))
+			}
+			fieldCases = append(fieldCases, anonymousCases...)
+			if field.IsPointer {
+				fieldCases = append(fieldCases, "}")
+			}
+			continue
 		}
 
 	main:
@@ -179,14 +212,14 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []s
 				}
 
 				if err = s.generateStructCode(field.ComponentType); err != nil {
-					return "", nil, err
+					return nil, err
 				}
 
 				if field.ComponentType != "" {
 					// templateKey = decodeStruct
 					templateKey = decodeStructSlice
 					if err = s.generateObjectArray(field); err != nil {
-						return "", nil, err
+						return nil, err
 					}
 				} else {
 					templateKey = decodeStruct
@@ -196,7 +229,7 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []s
 			} else if field.IsSlice {
 				templateKey = decodeStructSlice
 				if err = s.generateObjectArray(field); err != nil {
-					return "", nil, err
+					return nil, err
 				}
 			} else {
 				// templateKey = decodeStruct
@@ -206,44 +239,57 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo) (string, []s
 		if templateKey != -1 {
 			decodingCase, err := expandFieldTemplate(templateKey, field)
 			if err != nil {
-				return "", nil, err
+				return nil, err
 			}
 			fieldCases = append(fieldCases, decodingCase)
 		}
-
 	}
-	return initCode, fieldCases, nil
+	return fieldCases, nil
 }
 
-func (s *Struct) generateEmbeddedFieldEncoding(field *Field, fieldTypeInfo *toolbox.TypeInfo) ([]string, error) {
-	var result = []string{}
-	if fieldTypeInfo != nil {
-		embeddedCases, err := s.generateFieldEncoding(fieldTypeInfo.Fields())
-		if err != nil {
-			return nil, err
-		}
-		if field.IsPointer {
-			result = append(result, fmt.Sprintf("    if %v != nil {", field.Accessor))
-			for _, code := range embeddedCases {
-				result = append(result, "    "+code)
-			}
-			result = append(result, "    }")
-		} else {
-			result = append(result, embeddedCases...)
-		}
-	}
-	return result, nil
-}
-
-func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo) ([]string, error) {
+func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo, anonymousPrefix string) ([]string, error) {
 	fieldCases := []string{}
 	for i := range fields {
-		var templateKey = -1
-		fieldTypeInfo := s.Type(fields[i].TypeName)
-		field, err := NewField(s, fields[i], fieldTypeInfo)
+		templateKey := -1
+
+		// dont modify the original
+		fieldCopy := *fields[i]
+
+		fieldTypeInfo := s.Type(fieldCopy.TypeName)
+		if len(anonymousPrefix) > 0 {
+			fieldCopy.Name = anonymousPrefix + "." + fieldCopy.Name
+		}
+		field, err := NewField(s, &fieldCopy, fieldTypeInfo)
 		if err != nil {
 			return nil, err
 		}
+
+		// if we have an anonymous struct
+		if len(field.AnonymousChildFields) > 0 {
+			oldPrefix := anonymousPrefix
+			anonymousPrefix = fieldCopy.Name
+			anonymousCases, err := s.generateFieldEncoding(fieldCopy.AnonymousChildFields, anonymousPrefix)
+			if err != nil {
+				return nil, err
+			}
+			anonymousPrefix = oldPrefix
+
+			if field.IsPointer {
+				fieldCases = append(fieldCases, fmt.Sprintf(`
+				if %s != nil {
+					b.WriteBool(true)
+				`, field.Accessor))
+			}
+			fieldCases = append(fieldCases, anonymousCases...)
+			if field.IsPointer {
+				fieldCases = append(fieldCases, `
+				} else {
+					b.WriteBool(false)
+				}`)
+			}
+			continue
+		}
+
 	main:
 		switch {
 		case isPrimitiveString(field.Type):
@@ -276,11 +322,12 @@ func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo) ([]string, e
 			}
 		}
 		if templateKey != -1 {
-			decodingCase, err := expandFieldTemplate(templateKey, field)
+			encodingCase, err := expandFieldTemplate(templateKey, field)
 			if err != nil {
 				return nil, err
 			}
-			fieldCases = append(fieldCases, decodingCase)
+
+			fieldCases = append(fieldCases, encodingCase)
 		}
 
 	}

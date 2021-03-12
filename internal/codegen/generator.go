@@ -2,7 +2,7 @@ package codegen
 
 import (
 	"fmt"
-	"github.com/viant/toolbox"
+	"go.sia.tech/encodegen/internal/toolbox"
 	"go/format"
 	"io/ioutil"
 	"os"
@@ -101,7 +101,6 @@ func (g *Generator) writeCode() error {
 	// fmt.Printf("UNFORMATTED\n:%s", string(expandedCode))
 
 	code, err := format.Source([]byte(expandedCode))
-
 	if err != nil {
 		return err
 	}
@@ -131,12 +130,6 @@ func (g *Generator) generateObjectArray(field *Field) error {
 	}
 
 	return g.generateStructCode(field.ComponentType)
-	// code, err := expandBlockTemplate(structTypeSlice, field)
-	// if err != nil {
-	// 	return err
-	// }
-	// g.sliceTypes[field.RawComponentType] = code
-	// return err
 }
 
 func (g *Generator) generateTypedArray(field *Field) error {

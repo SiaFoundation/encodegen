@@ -2,7 +2,7 @@ package codegen
 
 import (
 	"fmt"
-	"github.com/viant/toolbox"
+	"go.sia.tech/encodegen/internal/toolbox"
 	"strings"
 )
 
@@ -22,23 +22,27 @@ type Field struct {
 
 	PrimitiveWriteCast string
 
-	IsPointer   bool
-	IsSlice     bool
+	IsPointer bool
+	IsSlice   bool
+
+	AnonymousChildFields []*toolbox.FieldInfo
 }
 
 //NewField returns a new field
 func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeInfo) (*Field, error) {
 	// fmt.Printf("\nOwner: {%+v}\nField: {%+v}\nFieldType: {%+v}\n", owner, field, fieldType)
+	// fmt.Printf("Owner Alias: %s, Field Name: %s\n", owner.Alias, field.Name)
 
 	result := &Field{
-		RawType:            field.TypeName,
-		IsPointer:          field.IsPointer,
-		Type:               field.TypeName,
-		Accessor:           owner.Alias + "." + field.Name,
-		ComponentType:      field.ComponentType,
-		IsPointerComponent: field.IsPointerComponent,
-		IsSlice:            field.IsSlice,
-		Alias:              owner.Alias,
+		RawType:              field.TypeName,
+		IsPointer:            field.IsPointer,
+		Type:                 field.TypeName,
+		Accessor:             owner.Alias + "." + field.Name,
+		ComponentType:        field.ComponentType,
+		IsPointerComponent:   field.IsPointerComponent,
+		IsSlice:              field.IsSlice,
+		Alias:                owner.Alias,
+		AnonymousChildFields: field.AnonymousChildFields,
 	}
 
 	if fieldType != nil {
@@ -49,28 +53,13 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 	}
 
 	if field.IsPointer {
-		if strings.Contains(result.RawType, "**") {
+		if strings.HasPrefix(result.RawType, "**") {
 			return nil, fmt.Errorf("Only single pointers are supported (error found in %+v)", field)
 		}
 		// toolbox library does not properly label pointers to slices but we dont support these anyways
-		if strings.Contains(result.RawType, "[]") {
+		if strings.HasPrefix(result.RawType, "*[]") {
 			return nil, fmt.Errorf("Pointers to slices (%+v) are not supported", field)
-			// field.IsSlice = true
-			// result.IsSlice = field.IsSlice
-
-			// arraySplit := strings.Split(result.RawType, "[]")
-			// for _, split := range arraySplit[1:] {
-			// 	if strings.Contains(split, "*") {
-			// 		field.IsPointerComponent = true
-			// 		result.IsPointerComponent = field.IsPointerComponent
-			// 	}
-			// }
 		}
-	}
-
-	if field.IsPointer && field.IsSlice {
-		field.ComponentType = strings.Replace(result.Type, "*[]", "", -1)
-		result.ComponentType = field.ComponentType
 	}
 
 	componentType := field.ComponentType

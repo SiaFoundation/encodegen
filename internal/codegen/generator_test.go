@@ -2,7 +2,7 @@ package codegen
 
 import (
 	"github.com/stretchr/testify/assert"
-	"github.com/viant/toolbox"
+	"go.sia.tech/encodegen/internal/toolbox"
 	"log"
 	"path"
 	"testing"

@@ -5,8 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-errors/errors"
-	"github.com/viant/toolbox"
-	"github.com/viant/toolbox/url"
+	"go.sia.tech/encodegen/internal/toolbox/url"
 )
 
 type Options struct {
@@ -36,8 +35,6 @@ const (
 
 //NewOptionsWithFlagSet creates a new options for the supplide flagset
 func NewOptionsWithFlagSet(set *flag.FlagSet) *Options {
-	toolbox.Dump(set)
-
 	var result = &Options{}
 	result.Dest = set.Lookup(optionKeyDest).Value.String()
 	result.Source = set.Lookup(optionKeySource).Value.String()
