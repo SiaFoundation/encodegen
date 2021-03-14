@@ -41,9 +41,9 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(len(m.Anonymous.IntegerSliceField)))
 
-		for i := range m.Anonymous.IntegerSliceField {
+		for i1 := range m.Anonymous.IntegerSliceField {
 
-			b.WriteUint64(uint64(m.Anonymous.IntegerSliceField[i]))
+			b.WriteUint64(uint64(m.Anonymous.IntegerSliceField[i1]))
 
 		}
 
@@ -51,17 +51,19 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		(*AliasSubMessage)(&m.Anonymous.AliasSub).MarshalBuffer(b)
 
-		b.WriteUint64(uint64(m.Anonymous.Anonymous3.A))
+		b.WriteUint64(uint64(m.Anonymous.AnonymousSub1.A))
 
-		b.WriteUint64(uint64(m.Anonymous.Anonymous3.Anonymous4.B))
+		b.WriteUint64(uint64(m.Anonymous.AnonymousSub1.AnonymousSub2.A))
 
-		if m.Anonymous.Anonymous3.Anonymous4.Anonymous5 != nil {
+		if m.Anonymous2 != nil {
 			b.WriteBool(true)
 
-			if m.Anonymous.Anonymous3.Anonymous4.Anonymous5.WWW != nil {
+			b.WriteUint64(uint64(m.Anonymous2.IntegerField))
+
+			if m.Anonymous2.Anonymous2Sub1 != nil {
 				b.WriteBool(true)
 
-				b.WriteUint64(uint64(*m.Anonymous.Anonymous3.Anonymous4.Anonymous5.WWW))
+				b.WriteUint64(uint64(m.Anonymous2.Anonymous2Sub1.A))
 
 			} else {
 				b.WriteBool(false)
@@ -71,24 +73,67 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 			b.WriteBool(false)
 		}
 
-		b.WriteUint64(uint64(m.Anonymous.Anonymous3.C))
+		b.WriteUint64(uint64(len(m.Anonymous4)))
+		for i := range m.Anonymous4 {
 
-		if m.Anonymous2 != nil {
-			b.WriteBool(true)
+			b.WriteUint64(uint64(m.Anonymous4[i].A))
 
-			b.WriteUint64(uint64(m.Anonymous2.IntegerField))
+			b.WriteUint64(uint64(len(m.Anonymous4[i].IntegerSliceField)))
 
-			if m.Anonymous2.Anonymous3 != nil {
+			for i1 := range m.Anonymous4[i].IntegerSliceField {
+
+				b.WriteUint64(uint64(m.Anonymous4[i].IntegerSliceField[i1]))
+
+			}
+
+			b.WriteUint64(uint64(len(m.Anonymous4[i].Anonymous5)))
+			for i1 := range m.Anonymous4[i].Anonymous5 {
+
+				b.WriteUint64(uint64(len(m.Anonymous4[i].Anonymous5[i1].A)))
+
+				for i2 := range m.Anonymous4[i].Anonymous5[i1].A {
+
+					b.WriteUint64(uint64(m.Anonymous4[i].Anonymous5[i1].A[i2]))
+
+				}
+
+				if m.Anonymous4[i].Anonymous5[i1].B != nil {
+					b.WriteBool(true)
+
+					b.WriteUint64(uint64(m.Anonymous4[i].Anonymous5[i1].B.A))
+
+				} else {
+					b.WriteBool(false)
+				}
+			}
+		}
+
+		b.WriteUint64(uint64(len(m.Anonymous5)))
+		for i := range m.Anonymous5 {
+
+			b.WriteUint64(uint64(m.Anonymous5[i].A))
+
+			b.WriteUint64(uint64(len(m.Anonymous5[i].B)))
+
+			for i1 := range m.Anonymous5[i].B {
+
+				m.Anonymous5[i].B[i1].MarshalBuffer(b)
+
+			}
+
+		}
+
+		b.WriteUint64(uint64(len(m.Anonymous6)))
+		for i := range m.Anonymous6 {
+
+			if m.Anonymous6[i] != nil {
 				b.WriteBool(true)
 
-				b.WriteUint64(uint64(m.Anonymous2.Anonymous3.A))
+				b.WriteUint64(uint64(m.Anonymous6[i].A))
 
 			} else {
 				b.WriteBool(false)
 			}
-
-		} else {
-			b.WriteBool(false)
 		}
 
 		b.WriteUint64(uint64(m.End))
@@ -114,9 +159,9 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 		if length > 0 {
 			m.Anonymous.IntegerSliceField = make([]int, length)
 
-			for i := range m.Anonymous.IntegerSliceField {
+			for i1 := range m.Anonymous.IntegerSliceField {
 
-				m.Anonymous.IntegerSliceField[i] = int(b.ReadUint64())
+				m.Anonymous.IntegerSliceField[i1] = int(b.ReadUint64())
 
 			}
 		}
@@ -125,46 +170,122 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		(*AliasSubMessage)(&m.Anonymous.AliasSub).UnmarshalBuffer(b)
 
-		m.Anonymous.Anonymous3.A = int(b.ReadUint64())
+		m.Anonymous.AnonymousSub1.A = int(b.ReadUint64())
 
-		m.Anonymous.Anonymous3.Anonymous4.B = int(b.ReadUint64())
-
-		if b.ReadBool() {
-			if m.Anonymous.Anonymous3.Anonymous4.Anonymous5 == nil {
-				m.Anonymous.Anonymous3.Anonymous4.Anonymous5 = new(struct {
-					WWW        *int
-					Anonymous6 struct{}
-				})
-			}
-
-			if b.ReadBool() {
-				if m.Anonymous.Anonymous3.Anonymous4.Anonymous5.WWW == nil {
-					m.Anonymous.Anonymous3.Anonymous4.Anonymous5.WWW = new(int)
-				}
-				*m.Anonymous.Anonymous3.Anonymous4.Anonymous5.WWW = int(b.ReadUint64())
-			}
-
-		}
-
-		m.Anonymous.Anonymous3.C = int(b.ReadUint64())
+		m.Anonymous.AnonymousSub1.AnonymousSub2.A = int(b.ReadUint64())
 
 		if b.ReadBool() {
 			if m.Anonymous2 == nil {
 				m.Anonymous2 = new(struct {
-					IntegerField int
-					Anonymous3   *struct{ A int }
+					IntegerField   int
+					Anonymous2Sub1 *struct{ A int }
 				})
 			}
 
 			m.Anonymous2.IntegerField = int(b.ReadUint64())
 
 			if b.ReadBool() {
-				if m.Anonymous2.Anonymous3 == nil {
-					m.Anonymous2.Anonymous3 = new(struct{ A int })
+				if m.Anonymous2.Anonymous2Sub1 == nil {
+					m.Anonymous2.Anonymous2Sub1 = new(struct{ A int })
 				}
 
-				m.Anonymous2.Anonymous3.A = int(b.ReadUint64())
+				m.Anonymous2.Anonymous2Sub1.A = int(b.ReadUint64())
 
+			}
+		}
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			m.Anonymous4 = make([]struct {
+				A                 int
+				IntegerSliceField []int
+				Anonymous5        []struct {
+					A []int
+					B *struct{ A int }
+				}
+			}, length)
+			for i := range m.Anonymous4 {
+
+				m.Anonymous4[i].A = int(b.ReadUint64())
+
+				length = int(b.ReadUint64())
+				if length > 0 {
+					m.Anonymous4[i].IntegerSliceField = make([]int, length)
+
+					for i1 := range m.Anonymous4[i].IntegerSliceField {
+
+						m.Anonymous4[i].IntegerSliceField[i1] = int(b.ReadUint64())
+
+					}
+				}
+
+				length = int(b.ReadUint64())
+				if length > 0 {
+					m.Anonymous4[i].Anonymous5 = make([]struct {
+						A []int
+						B *struct{ A int }
+					}, length)
+					for i1 := range m.Anonymous4[i].Anonymous5 {
+
+						length = int(b.ReadUint64())
+						if length > 0 {
+							m.Anonymous4[i].Anonymous5[i1].A = make([]int, length)
+
+							for i2 := range m.Anonymous4[i].Anonymous5[i1].A {
+
+								m.Anonymous4[i].Anonymous5[i1].A[i2] = int(b.ReadUint64())
+
+							}
+						}
+
+						if b.ReadBool() {
+							if m.Anonymous4[i].Anonymous5[i1].B == nil {
+								m.Anonymous4[i].Anonymous5[i1].B = new(struct{ A int })
+							}
+
+							m.Anonymous4[i].Anonymous5[i1].B.A = int(b.ReadUint64())
+
+						}
+					}
+				}
+			}
+		}
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			m.Anonymous5 = make([]struct {
+				A int
+				B []AliasSubMessage
+			}, length)
+			for i := range m.Anonymous5 {
+
+				m.Anonymous5[i].A = int(b.ReadUint64())
+
+				length = int(b.ReadUint64())
+				if length > 0 {
+					m.Anonymous5[i].B = make([]AliasSubMessage, length)
+
+					for i1 := range m.Anonymous5[i].B {
+
+						(*AliasSubMessage)(&m.Anonymous5[i].B[i1]).UnmarshalBuffer(b)
+
+					}
+				}
+
+			}
+		}
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			m.Anonymous6 = make([]*struct{ A int }, length)
+			for i := range m.Anonymous6 {
+
+				if b.ReadBool() {
+					m.Anonymous6[i] = new(struct{ A int })
+
+					m.Anonymous6[i].A = int(b.ReadUint64())
+
+				}
 			}
 		}
 

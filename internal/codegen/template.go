@@ -67,17 +67,17 @@ length = int(b.ReadUint64())
 if length > 0 {
 	{{.Accessor}} = make({{.Type}}, length)
 
-	for i := range {{.Accessor}} {
+	for {{.Iterator}} := range {{.Accessor}} {
 
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
-			if ({{.Accessor}}[i] == nil) {
-				{{.Accessor}}[i] = new({{.ComponentType}})		
+			if ({{.Accessor}}[{{.Iterator}}] == nil) {
+				{{.Accessor}}[{{.Iterator}}] = new({{.ComponentType}})		
 			}
-			*{{.Accessor}}[i] = {{noPointer .ComponentType}}(b.{{.DecodingMethod}}())
+			*{{.Accessor}}[{{.Iterator}}] = {{noPointer .ComponentType}}(b.{{.DecodingMethod}}())
 		}
 		{{else}}
-			{{.Accessor}}[i] = {{.ComponentType}}(b.{{.DecodingMethod}}())
+			{{.Accessor}}[{{.Iterator}}] = {{.ComponentType}}(b.{{.DecodingMethod}}())
 		{{end}}
 	}
 }
@@ -87,15 +87,15 @@ if length > 0 {
 
 b.WriteUint64(uint64(len({{if .IsPointer}}*{{end}}{{.Accessor}})))
 
-for i := range {{if .IsPointer}}*{{end}}{{.Accessor}} {
+for {{.Iterator}} := range {{if .IsPointer}}*{{end}}{{.Accessor}} {
 	{{if .IsPointerComponent}}
-	if {{.Accessor}}[i] != nil {
+	if {{.Accessor}}[{{.Iterator}}] != nil {
 		b.WriteBool(true)
 
-		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}(*{{.Accessor}}[i]))
+		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}(*{{.Accessor}}[{{.Iterator}}]))
 
 	{{else}}
-		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{.Accessor}}[i]))
+		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{.Accessor}}[{{.Iterator}}]))
 	{{end}}
 
 	{{if .IsPointerComponent}}
@@ -139,17 +139,17 @@ length = int(b.ReadUint64())
 if length > 0 {
 	{{.Accessor}} = make({{.RawType}}, length)
 
-	for i := range {{.Accessor}} {
+	for {{.Iterator}} := range {{.Accessor}} {
 
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
-			if ({{.Accessor}}[i] == nil) {
-				{{.Accessor}}[i] = new({{.ComponentType}})
+			if ({{.Accessor}}[{{.Iterator}}] == nil) {
+				{{.Accessor}}[{{.Iterator}}] = new({{.ComponentType}})
 			}
-			{{noPointer .Accessor}}[i].UnmarshalBuffer(b)
+			{{noPointer .Accessor}}[{{.Iterator}}].UnmarshalBuffer(b)
 		}
 		{{else}}
-			(*{{.ComponentType}})(&{{.Accessor}}[i]).UnmarshalBuffer(b)
+			(*{{.ComponentType}})(&{{.Accessor}}[{{.Iterator}}]).UnmarshalBuffer(b)
 		{{end}}
 	}
 }
@@ -161,13 +161,13 @@ if length > 0 {
 
 b.WriteUint64(uint64(len({{if .IsPointer}}*{{end}}{{.Accessor}})))
 
-for i := range {{if .IsPointer}}*{{end}}{{.Accessor}} {
+for {{.Iterator}} := range {{if .IsPointer}}*{{end}}{{.Accessor}} {
 	{{if .IsPointerComponent}}
-	if {{.Accessor}}[i] != nil {
+	if {{.Accessor}}[{{.Iterator}}] != nil {
 		b.WriteBool(true)
 	{{end}}
 
-	{{noPointer .Accessor}}[i].MarshalBuffer(b)
+	{{noPointer .Accessor}}[{{.Iterator}}].MarshalBuffer(b)
 
 	{{if .IsPointerComponent}}
 	} else {

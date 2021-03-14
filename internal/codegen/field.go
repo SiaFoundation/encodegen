@@ -24,6 +24,7 @@ type Field struct {
 
 	IsPointer bool
 	IsSlice   bool
+	Iterator string
 
 	AnonymousChildFields []*toolbox.FieldInfo
 }
@@ -63,8 +64,9 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 	}
 
 	componentType := field.ComponentType
-	if componentType == "" {
+	if componentType == "" && (fieldType == nil || fieldType.Derived != "") {
 		componentType = result.Type
+		result.ComponentType = strings.TrimPrefix(strings.TrimPrefix(result.Type, "[]"), "*")
 	}
 
 	if isPrimitiveString(componentType) {

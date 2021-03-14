@@ -3,31 +3,38 @@ package embedded_struct
 type AliasSubMessage SubMessage
 
 type Message struct {
-	Id        int
+	Id int
 	Anonymous struct {
 		IntegerField      int
 		StringField       string
 		IntegerSliceField []int
 		Sub               SubMessage
 		AliasSub          AliasSubMessage
-		Anonymous3        struct {
+		AnonymousSub1        struct {
 			A          int
-			Anonymous4 struct {
-				B          int
-				Anonymous5 *struct {
-					WWW        *int
-					Anonymous6 struct{}
-				}
+			AnonymousSub2 struct {
+				A          int
 			}
-			C int
 		}
 	}
 	Anonymous2 *struct {
 		IntegerField int
-		Anonymous3   *struct {
+		Anonymous2Sub1   *struct {
 			A int
 		}
 	}
-	Empty struct{}
-	End   int
+	Anonymous3 struct{}
+	Anonymous4 []struct {
+		A                 int
+		IntegerSliceField []int
+		Anonymous5        []struct {
+			A []int
+			B *struct {
+				A int
+			}
+		}
+	}
+	Anonymous5 []struct{A int; B []AliasSubMessage}
+	Anonymous6 []*struct{A int}
+	End int
 }

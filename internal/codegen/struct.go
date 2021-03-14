@@ -1,6 +1,7 @@
 package codegen
 
 import (
+	"strconv"
 	"fmt"
 	"go.sia.tech/encodegen/internal/toolbox"
 	"strings"
@@ -23,12 +24,12 @@ func (s *Struct) Generate() (string, error) {
 func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) {
 	hasSlice := fieldsHaveSlice(structInfo.Fields())
 
-	decodingCases, err := s.generateFieldDecoding(structInfo.Fields(), "")
+	decodingCases, err := s.generateFieldDecoding(structInfo.Fields(), "", "")
 	if err != nil {
 		return "", err
 	}
 
-	encodingCases, err := s.generateFieldEncoding(structInfo.Fields(), "")
+	encodingCases, err := s.generateFieldEncoding(structInfo.Fields(), "", "")
 	if err != nil {
 		return "", err
 	}
@@ -139,11 +140,31 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo) ([]string, []s
 	return []string{decode}, []string{encode}, nil
 }
 
-func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo, anonymousPrefix string) ([]string, error) {
+func getNextIterator(currentIdentifier string) string {
+	// this function allows the generated the code to iterate over slices of structs that have slices within them without having iteration identifiers conflict (i.e., there'd be multiple "range i := r.Fields"s)
+	idSplit := strings.Split(currentIdentifier, "i")
+	if len(idSplit) != 2 {
+		return "i"
+	}
+	if idSplit[1] != "" {
+		num, err := strconv.Atoi(idSplit[1])
+		if err != nil {
+			return "i"
+		}
+		return fmt.Sprintf("i%d", num+1)
+	} else {
+		return "i1"
+	}
+}
+
+func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo, anonymousPrefix string, currentIterator string) ([]string, error) {
 	fieldCases := []string{}
 	for i := range fields {
 		templateKey := -1
 
+		if fields[i] == nil {
+			continue
+		}
 		// dont modify the original
 		fieldCopy := *fields[i]
 
@@ -156,6 +177,7 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo, anonymousPre
 		if err != nil {
 			return nil, err
 		}
+		field.Iterator = getNextIterator(currentIterator)
 
 		if fieldTypeInfo != nil {
 			err = s.generateStructCode(fieldTypeInfo.Name)
@@ -167,11 +189,7 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo, anonymousPre
 		if len(field.AnonymousChildFields) > 0 {
 			oldPrefix := anonymousPrefix
 			anonymousPrefix = fieldCopy.Name
-			anonymousCases, err := s.generateFieldDecoding(field.AnonymousChildFields, anonymousPrefix)
-			if err != nil {
-				return nil, err
-			}
-			anonymousPrefix = oldPrefix
+
 			if field.IsPointer {
 				fieldCases = append(fieldCases, fmt.Sprintf(`
 				if b.ReadBool() {
@@ -180,10 +198,44 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo, anonymousPre
 					}
 				`, field.Accessor, field.Accessor, noPointer(field.Type)))
 			}
+			if field.IsSlice {
+				fieldCases = append(fieldCases, fmt.Sprintf(`
+				length = int(b.ReadUint64())
+				if length > 0 {
+					%s = make(%s, length) 
+					for %s := range %s {
+
+				`, field.Accessor, field.Type, field.Iterator, field.Accessor))
+				anonymousPrefix = fieldCopy.Name + "[" + field.Iterator + "]"
+				if field.IsPointerComponent {
+					fieldCases = append(fieldCases, fmt.Sprintf(`
+					if b.ReadBool() {
+						%s[%s] = new(%s)
+					`, field.Accessor, field.Iterator, field.ComponentType))
+				}
+			}
+
+
+			anonymousCases, err := s.generateFieldDecoding(fieldCopy.AnonymousChildFields, anonymousPrefix, field.Iterator)
+			if err != nil {
+				return nil, err
+			}
 			fieldCases = append(fieldCases, anonymousCases...)
+
 			if field.IsPointer {
 				fieldCases = append(fieldCases, "}")
 			}
+			if field.IsSlice {
+				fieldCases = append(fieldCases, "}")
+				fieldCases = append(fieldCases, "}")
+				if field.IsPointerComponent {
+					fieldCases = append(fieldCases, `}`)
+
+				}
+			}
+
+			anonymousPrefix = oldPrefix
+
 			continue
 		}
 
@@ -247,11 +299,14 @@ func (s *Struct) generateFieldDecoding(fields []*toolbox.FieldInfo, anonymousPre
 	return fieldCases, nil
 }
 
-func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo, anonymousPrefix string) ([]string, error) {
+func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo, anonymousPrefix string, currentIterator string) ([]string, error) {
 	fieldCases := []string{}
 	for i := range fields {
 		templateKey := -1
 
+		if fields[i] == nil {
+			continue
+		}
 		// dont modify the original
 		fieldCopy := *fields[i]
 
@@ -263,16 +318,11 @@ func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo, anonymousPre
 		if err != nil {
 			return nil, err
 		}
-
+		field.Iterator = getNextIterator(currentIterator)
 		// if we have an anonymous struct
 		if len(field.AnonymousChildFields) > 0 {
 			oldPrefix := anonymousPrefix
 			anonymousPrefix = fieldCopy.Name
-			anonymousCases, err := s.generateFieldEncoding(fieldCopy.AnonymousChildFields, anonymousPrefix)
-			if err != nil {
-				return nil, err
-			}
-			anonymousPrefix = oldPrefix
 
 			if field.IsPointer {
 				fieldCases = append(fieldCases, fmt.Sprintf(`
@@ -280,13 +330,48 @@ func (s *Struct) generateFieldEncoding(fields []*toolbox.FieldInfo, anonymousPre
 					b.WriteBool(true)
 				`, field.Accessor))
 			}
+			if field.IsSlice {
+				fieldCases = append(fieldCases, fmt.Sprintf(`
+				b.WriteUint64(uint64(len(%s)))
+				for %s := range %s {
+			`, field.Accessor, field.Iterator, field.Accessor))
+				anonymousPrefix = fieldCopy.Name + "[" + field.Iterator + "]"
+
+				if field.IsPointerComponent {
+					fieldCases = append(fieldCases, fmt.Sprintf(`
+					if %s[%s] != nil {
+						b.WriteBool(true)
+					`, field.Accessor, field.Iterator))
+				}
+
+			}
+
+			anonymousCases, err := s.generateFieldEncoding(fieldCopy.AnonymousChildFields, anonymousPrefix, field.Iterator)
+			if err != nil {
+				return nil, err
+			}
 			fieldCases = append(fieldCases, anonymousCases...)
+
+
+
+			if field.IsSlice {
+				if field.IsPointerComponent {
+					fieldCases = append(fieldCases, fmt.Sprintf(`
+					} else {
+						b.WriteBool(false)
+					}`))
+				}
+				fieldCases = append(fieldCases, `}`)
+
+			}
 			if field.IsPointer {
 				fieldCases = append(fieldCases, `
 				} else {
 					b.WriteBool(false)
 				}`)
 			}
+
+			anonymousPrefix = oldPrefix
 			continue
 		}
 

@@ -10,8 +10,8 @@ import (
 var anonymous3Struct = struct{ A int }{A: 5000}
 
 var anonymous2Struct = struct {
-	IntegerField int
-	Anonymous3   *struct {
+	IntegerField   int
+	Anonymous2Sub1 *struct {
 		A int
 	}
 }{
@@ -21,21 +21,99 @@ var anonymous2Struct = struct {
 
 var msg = Message{
 	Id: 1022,
-	// Anonymous: struct {
-	// 	IntegerField      int
-	// 	StringField       string
-	// 	IntegerSliceField []int
-	// 	Sub               SubMessage
-	// 	AliasSub          AliasSubMessage
-	// }{
-	// 	5000,
-	// 	"AAA",
-	// 	[]int{5, 5, 5, 5},
-	// 	SubMessage{Id: 999},
-	// 	AliasSubMessage(SubMessage{Id: 999}),
-	// },
+	Anonymous: struct {
+		IntegerField      int
+		StringField       string
+		IntegerSliceField []int
+		Sub               SubMessage
+		AliasSub          AliasSubMessage
+		AnonymousSub1        struct {
+			A          int
+			AnonymousSub2 struct {
+				A          int
+			}
+		}
+	}{
+		5,
+		"ASDASDADS",
+		[]int{4,4,4,4,4,3,3,3,33,2},
+		SubMessage{Id: 444},
+		AliasSubMessage(SubMessage{Id: 4441, Description: "ASDDAS"}),
+		struct{
+			A int
+			AnonymousSub2 struct {
+				A int
+			}
+		}{
+			4000,
+			struct{A int}{
+				5000,
+			},
+		},
+	},
 	Anonymous2: &anonymous2Struct,
-	// Anonymous2: nil,
+	Anonymous4: []struct {
+		A                 int
+		IntegerSliceField []int
+		Anonymous5        []struct {
+			A []int
+			B *struct{
+				A int
+			}
+		}
+	}{
+		{
+			A:                 5,
+			IntegerSliceField: nil,
+			Anonymous5:        []struct{ A []int; B *struct{A int} }{},
+		},
+		{
+			A:                 99999999999999,
+			IntegerSliceField: nil,
+			Anonymous5:        []struct{ A []int; B *struct{A int} }{
+				{
+					A: []int{5,5,5,5},
+					B: nil,
+				},
+				{
+					A: nil,
+					B: &anonymous3Struct,
+				},
+				{
+					A: []int{5,10,15,20,30},
+					B: &anonymous3Struct,
+				},
+			},
+		},
+		{
+			A:                 98324,
+			IntegerSliceField: []int{},
+			Anonymous5:        []struct{ A []int; B *struct{A int} }{},
+		},
+		{
+			A:                 -33,
+			IntegerSliceField: []int{5, 5, 5, 5, 5, 4},
+			Anonymous5:        []struct{ A []int; B *struct{A int} }{},
+		},
+	},
+	Anonymous5: []struct{A int; B []AliasSubMessage}{
+		{
+			A: 444,
+			B: []AliasSubMessage{
+				AliasSubMessage(SubMessage{Id: -1}),
+				AliasSubMessage(SubMessage{Id: -1}),
+				AliasSubMessage(SubMessage{Id: -1}),
+				AliasSubMessage(SubMessage{Id: -1}),
+				AliasSubMessage(SubMessage{Id: -1}),
+				AliasSubMessage(SubMessage{Id: -1}),
+			},
+		},
+		{
+			A: 11,
+			B: nil,
+		},
+	},
+	Anonymous6: []*struct{A int}{nil, nil, &anonymous3Struct, nil},
 	End: -7222,
 }
 
