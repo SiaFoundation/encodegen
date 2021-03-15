@@ -27,26 +27,26 @@ var msg = Message{
 		IntegerSliceField []int
 		Sub               SubMessage
 		AliasSub          AliasSubMessage
-		AnonymousSub1        struct {
-			A          int
+		AnonymousSub1     struct {
+			A             int
 			AnonymousSub2 struct {
-				A          int
+				A int
 			}
 		}
 	}{
 		5,
 		"ASDASDADS",
-		[]int{4,4,4,4,4,3,3,3,33,2},
+		[]int{4, 4, 4, 4, 4, 3, 3, 3, 33, 2},
 		SubMessage{Id: 444},
 		AliasSubMessage(SubMessage{Id: 4441, Description: "ASDDAS"}),
-		struct{
-			A int
+		struct {
+			A             int
 			AnonymousSub2 struct {
 				A int
 			}
 		}{
 			4000,
-			struct{A int}{
+			struct{ A int }{
 				5000,
 			},
 		},
@@ -57,7 +57,7 @@ var msg = Message{
 		IntegerSliceField []int
 		Anonymous5        []struct {
 			A []int
-			B *struct{
+			B *struct {
 				A int
 			}
 		}
@@ -65,14 +65,20 @@ var msg = Message{
 		{
 			A:                 5,
 			IntegerSliceField: nil,
-			Anonymous5:        []struct{ A []int; B *struct{A int} }{},
+			Anonymous5: []struct {
+				A []int
+				B *struct{ A int }
+			}{},
 		},
 		{
 			A:                 99999999999999,
 			IntegerSliceField: nil,
-			Anonymous5:        []struct{ A []int; B *struct{A int} }{
+			Anonymous5: []struct {
+				A []int
+				B *struct{ A int }
+			}{
 				{
-					A: []int{5,5,5,5},
+					A: []int{5, 5, 5, 5},
 					B: nil,
 				},
 				{
@@ -80,7 +86,7 @@ var msg = Message{
 					B: &anonymous3Struct,
 				},
 				{
-					A: []int{5,10,15,20,30},
+					A: []int{5, 10, 15, 20, 30},
 					B: &anonymous3Struct,
 				},
 			},
@@ -88,15 +94,24 @@ var msg = Message{
 		{
 			A:                 98324,
 			IntegerSliceField: []int{},
-			Anonymous5:        []struct{ A []int; B *struct{A int} }{},
+			Anonymous5: []struct {
+				A []int
+				B *struct{ A int }
+			}{},
 		},
 		{
 			A:                 -33,
 			IntegerSliceField: []int{5, 5, 5, 5, 5, 4},
-			Anonymous5:        []struct{ A []int; B *struct{A int} }{},
+			Anonymous5: []struct {
+				A []int
+				B *struct{ A int }
+			}{},
 		},
 	},
-	Anonymous5: []struct{A int; B []AliasSubMessage}{
+	Anonymous5: []struct {
+		A int
+		B []AliasSubMessage
+	}{
 		{
 			A: 444,
 			B: []AliasSubMessage{
@@ -113,8 +128,8 @@ var msg = Message{
 			B: nil,
 		},
 	},
-	Anonymous6: []*struct{A int}{nil, nil, &anonymous3Struct, nil},
-	End: -7222,
+	Anonymous6: []*struct{ A int }{nil, nil, &anonymous3Struct, nil},
+	End:        -7222,
 }
 
 func TestMessage(t *testing.T) {

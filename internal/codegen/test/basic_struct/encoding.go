@@ -120,9 +120,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			for i := range m.MessagesX {
 
 				if b.ReadBool() {
-					if m.MessagesX[i] == nil {
-						m.MessagesX[i] = new(SubMessage)
-					}
+					m.MessagesX[i] = new(SubMessage)
 					m.MessagesX[i].UnmarshalBuffer(b)
 				}
 

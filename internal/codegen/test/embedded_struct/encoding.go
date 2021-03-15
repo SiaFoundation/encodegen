@@ -105,7 +105,9 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 				} else {
 					b.WriteBool(false)
 				}
+
 			}
+
 		}
 
 		b.WriteUint64(uint64(len(m.Anonymous5)))
@@ -134,6 +136,7 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 			} else {
 				b.WriteBool(false)
 			}
+
 		}
 
 		b.WriteUint64(uint64(m.End))
@@ -192,6 +195,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.Anonymous2.Anonymous2Sub1.A = int(b.ReadUint64())
 
 			}
+
 		}
 
 		length = int(b.ReadUint64())
@@ -246,8 +250,10 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 							m.Anonymous4[i].Anonymous5[i1].B.A = int(b.ReadUint64())
 
 						}
+
 					}
 				}
+
 			}
 		}
 
@@ -286,6 +292,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 					m.Anonymous6[i].A = int(b.ReadUint64())
 
 				}
+
 			}
 		}
 

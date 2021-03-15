@@ -1,7 +1,9 @@
 package codegen
 
 import (
+	"go.sia.tech/encodegen/internal/toolbox"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -35,4 +37,36 @@ func sortedKeys(m map[string]string) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+func getNextIterator(currentIdentifier string) string {
+	// this function allows the generated the code to iterate over slices of structs that have slices within them without having iteration identifiers conflict (i.e., there'd be multiple "range i := r.Fields"s)
+	idSplit := strings.Split(currentIdentifier, "i")
+	if len(idSplit) != 2 {
+		return "i"
+	}
+	if idSplit[1] != "" {
+		num, err := strconv.Atoi(idSplit[1])
+		if err != nil {
+			return "i"
+		}
+		return "i" + strconv.Itoa(num+1)
+	} else {
+		return "i1"
+	}
+}
+
+func fieldsHaveSlice(fields []*toolbox.FieldInfo) bool {
+	for _, field := range fields {
+		if field.IsSlice {
+			return true
+		}
+		if len(field.AnonymousChildFields) > 0 {
+			hasSlice := fieldsHaveSlice(field.AnonymousChildFields)
+			if hasSlice {
+				return hasSlice
+			}
+		}
+	}
+	return false
 }

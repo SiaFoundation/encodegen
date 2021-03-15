@@ -111,9 +111,7 @@ func (a *AliasIntPointerArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			for i := range temp {
 
 				if b.ReadBool() {
-					if temp[i] == nil {
-						temp[i] = new(int)
-					}
+					temp[i] = new(int)
 					*temp[i] = int(b.ReadUint64())
 				}
 

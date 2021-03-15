@@ -30,6 +30,11 @@ const (
 	encodeAliasBaseTypeSlice
 	decodeAliasStructSlice
 	encodeAliasStructSlice
+
+	decodeAnonymousStructPointer
+	encodeAnonymousStructPointer
+	decodeAnonymousStructSlice
+	encodeAnonymousStructSlice
 )
 
 var fieldTemplate = map[int]string{
@@ -71,9 +76,7 @@ if length > 0 {
 
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
-			if ({{.Accessor}}[{{.Iterator}}] == nil) {
-				{{.Accessor}}[{{.Iterator}}] = new({{.ComponentType}})		
-			}
+			{{.Accessor}}[{{.Iterator}}] = new({{.ComponentType}})		
 			*{{.Accessor}}[{{.Iterator}}] = {{noPointer .ComponentType}}(b.{{.DecodingMethod}}())
 		}
 		{{else}}
@@ -143,9 +146,7 @@ if length > 0 {
 
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
-			if ({{.Accessor}}[{{.Iterator}}] == nil) {
-				{{.Accessor}}[{{.Iterator}}] = new({{.ComponentType}})
-			}
+			{{.Accessor}}[{{.Iterator}}] = new({{.ComponentType}})
 			{{noPointer .Accessor}}[{{.Iterator}}].UnmarshalBuffer(b)
 		}
 		{{else}}
@@ -190,9 +191,7 @@ if length > 0 {
 
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
-			if temp[i] == nil {
-				temp[i] = new({{noPointer .ComponentType}})		
-			}
+			temp[i] = new({{noPointer .ComponentType}})		
 			*temp[i] = {{noPointer .ComponentType}}(b.{{.DecodingMethod}}())
 		}
 		{{else}}
@@ -286,6 +285,58 @@ for i := range temp {
 	}
 	{{end}}
 }
+`, decodeAnonymousStructPointer: `
+
+if b.ReadBool() {
+	if {{.Accessor}} == nil {
+		{{.Accessor}} = new({{noPointer .Type}})
+	}
+	{{.Cases}}
+}
+`, encodeAnonymousStructPointer: `
+
+if {{.Accessor}} != nil {
+	b.WriteBool(true)
+	{{.Cases}}
+} else {
+	b.WriteBool(false)
+}
+`, decodeAnonymousStructSlice: `
+
+length = int(b.ReadUint64())
+if length > 0 {
+	{{.Accessor}} = make({{.Type}}, length) 
+	for {{.Iterator}} := range {{.Accessor}} {
+		{{if .IsPointerComponent}}
+		if b.ReadBool() {
+			{{.Accessor}}[{{.Iterator}}] = new({{.ComponentType}})
+		{{end}}
+
+		{{.Cases}}
+
+		{{if .IsPointerComponent}}
+		}
+		{{end}}
+
+	}
+}
+`, encodeAnonymousStructSlice: `
+
+b.WriteUint64(uint64(len({{.Accessor}})))
+for {{.Iterator}} := range {{.Accessor}} {
+	{{if .IsPointerComponent}}
+	if {{.Accessor}}[{{.Iterator}}] != nil {
+		b.WriteBool(true)
+	{{end}}
+
+	{{.Cases}}
+
+	{{if .IsPointerComponent}}
+	} else {
+		b.WriteBool(false)
+	}
+	{{end}}
+}
 `,
 }
 
@@ -294,7 +345,6 @@ const (
 	encodingStructType
 	baseTypeSlice
 	structTypeSlice
-	embeddedStructInit
 	typeSlice
 )
 
@@ -330,9 +380,6 @@ if {{.Alias}} != nil {
 }
 	return b.Err()
 }`,
-	embeddedStructInit: `if {{.Accessor}} == nil { 
-		{{.Accessor}} = {{.Init}}
-	}`,
 }
 
 func noPointer(s string) string {

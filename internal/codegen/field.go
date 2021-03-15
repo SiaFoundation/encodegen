@@ -24,7 +24,7 @@ type Field struct {
 
 	IsPointer bool
 	IsSlice   bool
-	Iterator string
+	Iterator  string
 
 	AnonymousChildFields []*toolbox.FieldInfo
 }

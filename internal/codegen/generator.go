@@ -114,37 +114,6 @@ func (g *Generator) writeCode() error {
 	return ioutil.WriteFile(g.options.Dest, code, 0644)
 }
 
-func (g *Generator) generatePrimitiveArray(field *Field) error {
-	key := field.ComponentType + toolbox.AsString(field.IsPointerComponent)
-	if _, ok := g.sliceTypes[key]; ok {
-		return nil
-	}
-	code, err := expandBlockTemplate(baseTypeSlice, field)
-	g.sliceTypes[key] = code
-	return err
-}
-
-func (g *Generator) generateObjectArray(field *Field) error {
-	if _, ok := g.sliceTypes[field.RawComponentType]; ok {
-		return nil
-	}
-
-	return g.generateStructCode(field.ComponentType)
-}
-
-func (g *Generator) generateTypedArray(field *Field) error {
-	if _, ok := g.sliceTypes[field.RawComponentType]; ok {
-		return nil
-	}
-
-	code, err := expandBlockTemplate(typeSlice, field)
-	if err != nil {
-		return err
-	}
-	g.sliceTypes[field.RawComponentType] = code
-	return err
-}
-
 func (g *Generator) generateStructCode(structType string) error {
 	typeInfo := g.Type(structType)
 	if typeInfo == nil {
