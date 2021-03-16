@@ -70,8 +70,12 @@ var fieldTemplate = map[int]string{
 
 length = int(b.ReadUint64())
 if length > 0 {
+
 	{{.Accessor}} = make({{.Type}}, length)
 
+	{{if and (eq .ComponentType "byte") (.IsSlice) (eq .IsPointerComponent false) (eq .IsPointer false)}}
+	b.Read({{.Accessor}})
+	{{else}}
 	for {{.Iterator}} := range {{.Accessor}} {
 
 		{{if .IsPointerComponent}}
@@ -83,6 +87,7 @@ if length > 0 {
 			{{.Accessor}}[{{.Iterator}}] = {{.ComponentType}}(b.{{.DecodingMethod}}())
 		{{end}}
 	}
+	{{end}}
 }
 
 `,
@@ -90,6 +95,9 @@ if length > 0 {
 
 b.WriteUint64(uint64(len({{if .IsPointer}}*{{end}}{{.Accessor}})))
 
+{{if and (eq .ComponentType "byte") (.IsSlice) (eq .IsPointerComponent false) (eq .IsPointer false)}}
+b.Write({{.Accessor}})
+{{else}}
 for {{.Iterator}} := range {{if .IsPointer}}*{{end}}{{.Accessor}} {
 	{{if .IsPointerComponent}}
 	if {{.Accessor}}[{{.Iterator}}] != nil {
@@ -107,7 +115,7 @@ for {{.Iterator}} := range {{if .IsPointer}}*{{end}}{{.Accessor}} {
 	}
 	{{end}}
 }
-
+{{end}}
 `,
 	decodeStruct: `
 
@@ -187,6 +195,9 @@ length = int(b.ReadUint64())
 if length > 0 {
 	temp := make([]{{.ComponentType}}, length)
 
+	{{if and (eq .ComponentType "byte") (eq .IsPointerComponent false)}}
+	b.Read(temp)
+	{{else}}
 	for i := range temp {
 
 		{{if .IsPointerComponent}}
@@ -198,6 +209,7 @@ if length > 0 {
 			temp[i] = {{.ComponentType}}(b.{{.DecodingMethod}}())
 		{{end}}
 	}
+	{{end}}
 
 	*{{.Accessor}} = {{.Name}}(temp)
 }
@@ -205,6 +217,9 @@ if length > 0 {
 
 b.WriteUint64(uint64(len(*{{.Accessor}})))
 
+{{if and (eq .ComponentType "byte") (eq .IsPointerComponent false)}}
+b.Write([]{{.ComponentType}}(*{{.Accessor}}))
+{{else}}
 temp := []{{.ComponentType}}(*{{.Accessor}})
 
 for i := range temp {
@@ -224,6 +239,7 @@ for i := range temp {
 	}
 	{{end}}
 }
+{{end}}
 `,
 	encodeAliasBaseType: `
 

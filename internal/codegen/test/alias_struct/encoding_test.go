@@ -9,6 +9,7 @@ import (
 )
 
 var testInt int = 999
+var testByte byte = 0x99
 var testAliasInt AliasInt = AliasInt(9001)
 var doubleAliasSubMessageField = DoubleAliasSubMessage(AliasSubMessage(SubMessage{Id: 888, Description: "bbb"}))
 var testSubMessage = SubMessage{Id: 8888, Description: "AAAAA", Strings: []string{"WASDF", "WAASDSAD"}}
@@ -50,6 +51,8 @@ var msg = Message{
 		&testSubMessage,
 		nil,
 	}), nil, nil},
+	ByteSlice:      []byte{1, 123, 123, 123, 132},
+	AliasByteSlice: AliasByteSlice(nil),
 }
 
 func TestMessage(t *testing.T) {

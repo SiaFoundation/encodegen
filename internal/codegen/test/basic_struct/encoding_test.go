@@ -38,7 +38,8 @@ var msg = Message{
 		},
 	},
 	IsTrue:  &isTrue,
-	Payload: []byte(`"123"`),
+	Payload: []byte{11, 1, 1, 123, 123, 123, 123},
+	// Payload: nil,
 }
 
 func TestMessage(t *testing.T) {

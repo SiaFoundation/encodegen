@@ -160,6 +160,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		length = int(b.ReadUint64())
 		if length > 0 {
+
 			m.Anonymous.IntegerSliceField = make([]int, length)
 
 			for i1 := range m.Anonymous.IntegerSliceField {
@@ -167,6 +168,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.Anonymous.IntegerSliceField[i1] = int(b.ReadUint64())
 
 			}
+
 		}
 
 		(*SubMessage)(&m.Anonymous.Sub).UnmarshalBuffer(b)
@@ -214,6 +216,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 				length = int(b.ReadUint64())
 				if length > 0 {
+
 					m.Anonymous4[i].IntegerSliceField = make([]int, length)
 
 					for i1 := range m.Anonymous4[i].IntegerSliceField {
@@ -221,6 +224,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 						m.Anonymous4[i].IntegerSliceField[i1] = int(b.ReadUint64())
 
 					}
+
 				}
 
 				length = int(b.ReadUint64())
@@ -233,6 +237,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 						length = int(b.ReadUint64())
 						if length > 0 {
+
 							m.Anonymous4[i].Anonymous5[i1].A = make([]int, length)
 
 							for i2 := range m.Anonymous4[i].Anonymous5[i1].A {
@@ -240,6 +245,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 								m.Anonymous4[i].Anonymous5[i1].A[i2] = int(b.ReadUint64())
 
 							}
+
 						}
 
 						if b.ReadBool() {
@@ -336,6 +342,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		length = int(b.ReadUint64())
 		if length > 0 {
+
 			m.Strings = make([]string, length)
 
 			for i := range m.Strings {
@@ -343,6 +350,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.Strings[i] = string(b.ReadPrefixedBytes())
 
 			}
+
 		}
 
 	}

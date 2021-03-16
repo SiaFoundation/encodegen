@@ -66,11 +66,7 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(len(m.Payload)))
 
-		for i := range m.Payload {
-
-			b.WriteByte((m.Payload[i]))
-
-		}
+		b.Write(m.Payload)
 
 		b.WriteUint64(uint64(len(m.Strings)))
 
@@ -97,6 +93,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		length = int(b.ReadUint64())
 		if length > 0 {
+
 			m.Ints = make([]int, length)
 
 			for i := range m.Ints {
@@ -104,6 +101,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.Ints[i] = int(b.ReadUint64())
 
 			}
+
 		}
 
 		if b.ReadBool() {
@@ -149,17 +147,16 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		length = int(b.ReadUint64())
 		if length > 0 {
+
 			m.Payload = make([]byte, length)
 
-			for i := range m.Payload {
+			b.Read(m.Payload)
 
-				m.Payload[i] = byte(b.ReadByte())
-
-			}
 		}
 
 		length = int(b.ReadUint64())
 		if length > 0 {
+
 			m.Strings = make([]string, length)
 
 			for i := range m.Strings {
@@ -167,6 +164,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.Strings[i] = string(b.ReadPrefixedBytes())
 
 			}
+
 		}
 
 	}
@@ -207,6 +205,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		length = int(b.ReadUint64())
 		if length > 0 {
+
 			m.Strings = make([]string, length)
 
 			for i := range m.Strings {
@@ -214,6 +213,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.Strings[i] = string(b.ReadPrefixedBytes())
 
 			}
+
 		}
 
 	}

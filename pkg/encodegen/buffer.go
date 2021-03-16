@@ -22,7 +22,7 @@ func (b *ObjBuffer) Write(p []byte) {
 	b.buf.Write(p)
 }
 
-func (b *ObjBuffer) read(p []byte) {
+func (b *ObjBuffer) Read(p []byte) {
 	if b.err != nil {
 		return
 	}
@@ -109,7 +109,7 @@ func (b *ObjBuffer) WritePrefixedBytes(p []byte) {
 
 func (b *ObjBuffer) ReadPrefixedBytes() []byte {
 	p := make([]byte, b.ReadPrefix(1))
-	b.read(p)
+	b.Read(p)
 	return p
 }
 

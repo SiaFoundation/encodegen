@@ -8,6 +8,39 @@ import (
 
 // MarshalBuffer implements MarshalerBuffer
 
+func (s *AliasByteSlice) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if s != nil {
+
+		b.WriteUint64(uint64(len(*s)))
+
+		b.Write([]byte(*s))
+
+	}
+
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (s *AliasByteSlice) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+
+	if s != nil {
+
+		var length int = 0
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			temp := make([]byte, length)
+
+			b.Read(temp)
+
+			*s = AliasByteSlice(temp)
+		}
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+
 func (i *AliasInt) MarshalBuffer(b *encodegen.ObjBuffer) {
 	if i != nil {
 
@@ -342,6 +375,12 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		(*DoubleAliasInt)(&m.DoubleAliasIntField).MarshalBuffer(b)
 
+		b.WriteUint64(uint64(len(m.ByteSlice)))
+
+		b.Write(m.ByteSlice)
+
+		(*AliasByteSlice)(&m.AliasByteSlice).MarshalBuffer(b)
+
 	}
 
 }
@@ -409,6 +448,17 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		(*DoubleAliasInt)(&m.DoubleAliasIntField).UnmarshalBuffer(b)
 
+		length = int(b.ReadUint64())
+		if length > 0 {
+
+			m.ByteSlice = make([]byte, length)
+
+			b.Read(m.ByteSlice)
+
+		}
+
+		(*AliasByteSlice)(&m.AliasByteSlice).UnmarshalBuffer(b)
+
 	}
 	return b.Err()
 }
@@ -447,6 +497,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		length = int(b.ReadUint64())
 		if length > 0 {
+
 			m.Strings = make([]string, length)
 
 			for i := range m.Strings {
@@ -454,6 +505,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.Strings[i] = string(b.ReadPrefixedBytes())
 
 			}
+
 		}
 
 	}

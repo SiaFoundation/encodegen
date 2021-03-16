@@ -13,6 +13,8 @@ type AliasIntPointerArray []*int
 type AliasSubMessageArray []SubMessage
 type AliasSubMessagePointerArray []*SubMessage
 
+type AliasByteSlice []byte
+
 type Message struct {
 	Id                                    int
 	Sub                                   SubMessage
@@ -28,4 +30,6 @@ type Message struct {
 	AliasSubMessagePointerArrayField      AliasSubMessagePointerArray
 	ArrayAliasSubMessagePointerArrayField []AliasSubMessagePointerArray
 	DoubleAliasIntField                   DoubleAliasInt
+	ByteSlice                             []byte
+	AliasByteSlice                        AliasByteSlice
 }
