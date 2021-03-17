@@ -26,6 +26,8 @@ type Field struct {
 	IsSlice   bool
 	Iterator  string
 
+	ReuseMemory bool
+
 	AnonymousChildFields []*toolbox.FieldInfo
 }
 

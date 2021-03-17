@@ -23,21 +23,21 @@ func NewStruct(info *toolbox.TypeInfo, generator *Generator) *Struct {
 }
 
 //Generate generates decoderCode + encoderCode
-func (s *Struct) Generate() (string, error) {
-	return s.generateEncoding(s.TypeInfo)
+func (s *Struct) Generate(reuseMemory bool) (string, error) {
+	return s.generateEncoding(s.TypeInfo, reuseMemory)
 }
 
-func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) {
+func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo, reuseMemory bool) (string, error) {
 	hasSlice := fieldsHaveSlice(structInfo.Fields())
-	decodingCases, encodingCases, err := s.generateFieldMethods(structInfo.Fields(), "", "")
+	decodingCases, encodingCases, err := s.generateFieldMethods(structInfo.Fields(), reuseMemory, "", "")
 
 	if structInfo.IsDerived {
-		decodingCases, encodingCases, err = s.generateAliasCases(structInfo)
+		decodingCases, encodingCases, err = s.generateAliasCases(structInfo, reuseMemory)
 		if err != nil {
 			return "", err
 		}
 	} else if structInfo.ComponentType != "" {
-		decodingCases, encodingCases, err = s.generateAliasCases(structInfo)
+		decodingCases, encodingCases, err = s.generateAliasCases(structInfo, reuseMemory)
 		if err != nil {
 			return "", err
 		}
@@ -62,7 +62,7 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo) (string, error) 
 	return expandBlockTemplate(encodingStructType, data)
 }
 
-func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, anonymousPrefix string, currentIterator string) ([]string, []string, error) {
+func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, reuseMemory bool, anonymousPrefix string, currentIterator string) ([]string, []string, error) {
 	var decodeTemplateKey int
 	var encodeTemplateKey int
 	var decodingCases []string
@@ -84,10 +84,11 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, anonymousPref
 		if err != nil {
 			return nil, nil, err
 		}
+		field.ReuseMemory = reuseMemory
 		field.Iterator = getNextIterator(currentIterator)
 
 		if fieldTypeInfo != nil {
-			err = s.generateStructCode(fieldTypeInfo.Name)
+			err = s.generateStructCode(Type{Name: fieldTypeInfo.Name, ReuseMemory: reuseMemory})
 			if err != nil {
 				return nil, nil, err
 			}
@@ -96,7 +97,7 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, anonymousPref
 		if len(field.AnonymousChildFields) > 0 {
 			oldPrefix := anonymousPrefix
 			anonymousPrefix = fieldCopy.Name
-			newDecodingCases, newEncodingCases, err := s.generateAnonymousStructCases(field, anonymousPrefix, currentIterator)
+			newDecodingCases, newEncodingCases, err := s.generateAnonymousStructCases(field, reuseMemory, anonymousPrefix, currentIterator)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -129,7 +130,7 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, anonymousPref
 					break main
 				}
 
-				err := s.generateStructCode(field.ComponentType)
+				err := s.generateStructCode(Type{Name: field.ComponentType, ReuseMemory: reuseMemory})
 				if err != nil {
 					return nil, nil, err
 				}
@@ -170,7 +171,7 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, anonymousPref
 	return decodingCases, encodingCases, nil
 }
 
-func (s *Struct) generateAnonymousStructCases(field *Field, anonymousPrefix string, currentIterator string) ([]string, []string, error) {
+func (s *Struct) generateAnonymousStructCases(field *Field, reuseMemory bool, anonymousPrefix string, currentIterator string) ([]string, []string, error) {
 	var decodeTemplateKey int = -1
 	var encodeTemplateKey int = -1
 
@@ -183,7 +184,7 @@ func (s *Struct) generateAnonymousStructCases(field *Field, anonymousPrefix stri
 		encodeTemplateKey = encodeAnonymousStructPointer
 	}
 
-	newDecodingCases, newEncodingCases, err := s.generateFieldMethods(field.AnonymousChildFields, anonymousPrefix, field.Iterator)
+	newDecodingCases, newEncodingCases, err := s.generateFieldMethods(field.AnonymousChildFields, reuseMemory, anonymousPrefix, field.Iterator)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -198,6 +199,7 @@ func (s *Struct) generateAnonymousStructCases(field *Field, anonymousPrefix stri
 		Cases              string
 		Iterator           string
 		IsPointerComponent bool
+		ReuseMemory bool
 	}{
 		field.Accessor,
 		field.Type,
@@ -205,6 +207,7 @@ func (s *Struct) generateAnonymousStructCases(field *Field, anonymousPrefix stri
 		strings.Join(newDecodingCases, "\n"),
 		field.Iterator,
 		field.IsPointerComponent,
+		reuseMemory,
 	}
 	decodingCase, err := expandFieldTemplate(decodeTemplateKey, data)
 	if err != nil {
@@ -220,7 +223,7 @@ func (s *Struct) generateAnonymousStructCases(field *Field, anonymousPrefix stri
 	return []string{decodingCase}, []string{encodingCase}, nil
 }
 
-func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo) ([]string, []string, error) {
+func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo, reuseMemory bool) ([]string, []string, error) {
 	var err error
 	var decodeKey int
 	var encodeKey int
@@ -233,12 +236,14 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo) ([]string, []s
 		PrimitiveWriteCast string
 		ComponentType      string
 		IsPointerComponent bool
+		ReuseMemory bool
 	}{
 		Accessor:           s.Alias,
 		Derived:            structInfo.Derived,
 		Name:               structInfo.Name,
 		ComponentType:      structInfo.ComponentType,
 		IsPointerComponent: structInfo.IsPointerComponentType,
+		ReuseMemory: reuseMemory,
 	}
 	if structInfo.IsPointerComponentType {
 		newStructInfo.ComponentType = "*" + structInfo.ComponentType

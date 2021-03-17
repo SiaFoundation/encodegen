@@ -1,7 +1,6 @@
 package encodegen
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -9,13 +8,13 @@ import (
 )
 
 type ObjBuffer struct {
-	buf bytes.Buffer
+	buf Buffer
 	lr  io.LimitedReader
 	err error // sticky
 }
 
 func (b *ObjBuffer) grow(n int)        { b.buf.Grow(n) }
-func (b *ObjBuffer) bytes() []byte     { return b.buf.Bytes() }
+func (b *ObjBuffer) Bytes() []byte     { return b.buf.Bytes() }
 func (b *ObjBuffer) next(n int) []byte { return b.buf.Next(n) }
 
 func (b *ObjBuffer) Write(p []byte) {
@@ -131,11 +130,11 @@ func (b *ObjBuffer) Err() error {
 	return b.err
 }
 
-func (b *ObjBuffer) Bytes() []byte {
-	return b.buf.Bytes()
-}
-
 func (b *ObjBuffer) Reset() {
 	b.buf.Reset()
 	b.err = nil
+}
+
+func (b *ObjBuffer) Rewind() {
+	b.buf.Seek(-b.buf.Offset())
 }

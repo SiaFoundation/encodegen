@@ -1,6 +1,7 @@
 package codegen
 
 import (
+	"regexp"
 	"fmt"
 	"go.sia.tech/encodegen/internal/toolbox"
 	"go/format"
@@ -17,12 +18,9 @@ type Generator struct {
 	fileInfo    *toolbox.FileSetInfo
 	types       map[string]string
 	structTypes map[string]string
-	sliceTypes  map[string]string
 	imports     map[string]bool
-	filedInit   []string
 	Pkg         string
 	Code        string
-	Init        string
 	Imports     string
 	options     *Options
 }
@@ -39,10 +37,8 @@ func (g *Generator) addImport(pkg string) {
 
 // we initiate the variables containing the code to be generated
 func (g *Generator) init() {
-	g.filedInit = []string{}
 	g.imports = map[string]bool{}
 	g.structTypes = map[string]string{}
-	g.sliceTypes = map[string]string{}
 	g.addImport(encodingPackage)
 }
 
@@ -50,7 +46,8 @@ func (g *Generator) init() {
 func NewGenerator(options *Options) *Generator {
 	var g = &Generator{}
 	// first we validate the flags
-	if err := options.Validate(); err != nil {
+	err := options.Validate()
+	if err != nil {
 		panic(err)
 	}
 	g.options = options
@@ -62,13 +59,26 @@ func NewGenerator(options *Options) *Generator {
 // Generate generates the gojay implementation code
 func (g *Generator) Generate() error {
 	// first we read the code from which we should find the types
-	if err := g.readPackageCode(g.options.Source); err != nil {
+	err := g.readPackageCode(g.options.Source)
+	if err != nil {
 		return err
+	}
+
+	// add whitespace trim character to the front of all templates https://golang.org/pkg/text/template/
+	var re = regexp.MustCompile(`{{(if|else|end)(.*)}}`)
+	var substitution = "{{- $1 $2}}"
+
+	for key, value := range fieldTemplate {
+		fieldTemplate[key] = re.ReplaceAllString(value, substitution)
+	}
+	for key, value := range blockTemplate {
+		blockTemplate[key] = re.ReplaceAllString(value, substitution)
 	}
 
 	// then we generate code for the types given
 	for _, rootType := range g.options.Types {
-		if err := g.generateStructCode(rootType); err != nil {
+		err := g.generateStructCode(rootType)
+		if err != nil {
 			return err
 		}
 	}
@@ -81,10 +91,6 @@ func (g *Generator) writeCode() error {
 	var generatedCode = []string{}
 
 	generatedCode = append(generatedCode, "")
-	for _, key := range sortedKeys(g.sliceTypes) {
-		code := g.sliceTypes[key]
-		generatedCode = append(generatedCode, code)
-	}
 	generatedCode = append(generatedCode, "")
 	for _, key := range sortedKeys(g.structTypes) {
 		code := g.structTypes[key]
@@ -93,6 +99,7 @@ func (g *Generator) writeCode() error {
 
 	g.Code = strings.Join(generatedCode, "\n")
 
+	// g.Code = strings.Replace(g.Code, "\n\n", "\n", -1)
 	expandedCode, err := expandBlockTemplate(fileCode, g)
 	if err != nil {
 		return err
@@ -114,25 +121,25 @@ func (g *Generator) writeCode() error {
 	return ioutil.WriteFile(g.options.Dest, code, 0644)
 }
 
-func (g *Generator) generateStructCode(structType string) error {
-	typeInfo := g.Type(structType)
+func (g *Generator) generateStructCode(structType Type) error {
+	typeInfo := g.Type(structType.Name)
 	if typeInfo == nil {
 		return nil
 	}
 
-	_, hasCode := g.structTypes[structType]
+	_, hasCode := g.structTypes[structType.Name]
 	if hasCode {
 		return nil
 	}
 
 	aStruct := NewStruct(typeInfo, g)
-	code, err := aStruct.Generate()
+	code, err := aStruct.Generate(structType.ReuseMemory)
 
 	if err != nil {
 		return err
 	}
 
-	g.structTypes[structType] = code
+	g.structTypes[structType.Name] = code
 	return nil
 }
 

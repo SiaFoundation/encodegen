@@ -21,7 +21,7 @@ func TestGenerator_Generate(t *testing.T) {
 			description: "basic struct code generation",
 			options: &Options{
 				Source: path.Join(parent, "basic_struct"),
-				Types:  []string{"Message"},
+				Types:  []Type{{Name: "Message", ReuseMemory: true}},
 				Dest:   path.Join(parent, "basic_struct", "encoding.go"),
 			},
 		},
@@ -30,7 +30,7 @@ func TestGenerator_Generate(t *testing.T) {
 			description: "struct composed of a bunch of different aliased types",
 			options: &Options{
 				Source: path.Join(parent, "alias_struct"),
-				Types:  []string{"Message"},
+				Types:  []Type{{Name: "Message", ReuseMemory: true}},
 				Dest:   path.Join(parent, "alias_struct", "encoding.go"),
 			},
 		},
@@ -38,7 +38,7 @@ func TestGenerator_Generate(t *testing.T) {
 			description: "struct with anonymous struct in it",
 			options: &Options{
 				Source: path.Join(parent, "embedded_struct"),
-				Types:  []string{"Message"},
+				Types:  []Type{{Name: "Message", ReuseMemory: true}},
 				Dest:   path.Join(parent, "embedded_struct", "encoding.go"),
 			},
 		},
