@@ -14,6 +14,7 @@ type PrimitiveFunctions struct {
 	ReadFunction  string
 	WriteFunction string
 	WriteCast     string
+	ReadCast      string
 }
 
 // all integer types are read as uint64 then casted to the appropriate type
@@ -29,7 +30,7 @@ var IntPrimitiveFunctions = PrimitiveFunctions{
 }
 
 var BoolPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadBoolFunction, WriteFunction: WriteBoolFunction, WriteCast: ""}
-var StringPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadStringFunction, WriteFunction: WriteStringFunction, WriteCast: "[]byte"}
+var StringPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadStringFunction, WriteFunction: WriteStringFunction, WriteCast: "encodegen.StringToBytes", ReadCast: "encodegen.BytesToString"}
 var BytePrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadByteFunction, WriteFunction: WriteByteFunction, WriteCast: ""}
 
 var supportedPrimitives = map[string]PrimitiveFunctions{

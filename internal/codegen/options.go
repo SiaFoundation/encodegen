@@ -63,7 +63,7 @@ func NewOptionsWithFlagSet(set *flag.FlagSet) *Options {
 				reuseMemory = true
 			}
 			result.Types = append(result.Types, Type{
-				Name: types[i],
+				Name:        types[i],
 				ReuseMemory: reuseMemory,
 			})
 

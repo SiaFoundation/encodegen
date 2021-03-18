@@ -11,7 +11,7 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(m.Id))
 
-		b.WritePrefixedBytes([]byte(m.Name))
+		b.WritePrefixedBytes(encodegen.StringToBytes(m.Name))
 
 		b.WriteUint64(uint64(len(m.Ints)))
 		for i := range m.Ints {
@@ -54,7 +54,7 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(len(m.Strings)))
 		for i := range m.Strings {
-			b.WritePrefixedBytes([]byte(m.Strings[i]))
+			b.WritePrefixedBytes(encodegen.StringToBytes(m.Strings[i]))
 		}
 
 	}
@@ -75,7 +75,10 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.Ints = make([]int, length)
 			}
 			for i := range m.Ints {
-				m.Ints[i] = int(b.ReadUint64())
+				if i == length {
+					break
+				}
+				m.Ints[i] = int((b.ReadUint64()))
 			}
 		}
 
@@ -92,6 +95,9 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.MessagesX = make([]*SubMessage, length)
 			}
 			for i := range m.MessagesX {
+				if i == length {
+					break
+				}
 				if b.ReadBool() {
 					if m.MessagesX[i] == nil {
 						m.MessagesX[i] = new(SubMessage)
@@ -109,6 +115,9 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.MessagesY = make([]SubMessage, length)
 			}
 			for i := range m.MessagesY {
+				if i == length {
+					break
+				}
 				(*SubMessage)(&m.MessagesY[i]).UnmarshalBuffer(b)
 			}
 		}
@@ -117,7 +126,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if m.IsTrue == nil {
 				m.IsTrue = new(bool)
 			}
-			*m.IsTrue = bool(b.ReadBool())
+			*m.IsTrue = bool((b.ReadBool()))
 		}
 
 		length = int(b.ReadUint64())
@@ -134,7 +143,10 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.Strings = make([]string, length)
 			}
 			for i := range m.Strings {
-				m.Strings[i] = string(b.ReadPrefixedBytes())
+				if i == length {
+					break
+				}
+				m.Strings[i] = string(encodegen.BytesToString(b.ReadPrefixedBytes()))
 			}
 		}
 
@@ -148,11 +160,11 @@ func (m *SubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(m.Id))
 
-		b.WritePrefixedBytes([]byte(m.Description))
+		b.WritePrefixedBytes(encodegen.StringToBytes(m.Description))
 
 		b.WriteUint64(uint64(len(m.Strings)))
 		for i := range m.Strings {
-			b.WritePrefixedBytes([]byte(m.Strings[i]))
+			b.WritePrefixedBytes(encodegen.StringToBytes(m.Strings[i]))
 		}
 
 	}
@@ -173,7 +185,10 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.Strings = make([]string, length)
 			}
 			for i := range m.Strings {
-				m.Strings[i] = string(b.ReadPrefixedBytes())
+				if i == length {
+					break
+				}
+				m.Strings[i] = string(encodegen.BytesToString(b.ReadPrefixedBytes()))
 			}
 		}
 

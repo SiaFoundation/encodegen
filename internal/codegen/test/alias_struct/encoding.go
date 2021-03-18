@@ -22,9 +22,10 @@ func (s *AliasByteSlice) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		length = int(b.ReadUint64())
 		if length > 0 {
-			temp := make([]byte, length)
-			b.Read(temp)
-			*s = AliasByteSlice(temp)
+			if len(*s) < length {
+				*s = make([]byte, length)
+			}
+			b.Read(*s)
 		}
 
 	}
@@ -44,7 +45,7 @@ func (i *AliasInt) MarshalBuffer(b *encodegen.ObjBuffer) {
 func (i *AliasInt) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 	if i != nil {
 
-		*i = AliasInt(int(b.ReadUint64()))
+		*i = AliasInt(int((b.ReadUint64())))
 
 	}
 	return b.Err()
@@ -70,11 +71,15 @@ func (a *AliasIntArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		length = int(b.ReadUint64())
 		if length > 0 {
-			temp := make([]int, length)
-			for i := range temp {
-				temp[i] = int(b.ReadUint64())
+			if len(*a) < length {
+				*a = make([]int, length)
 			}
-			*a = AliasIntArray(temp)
+			for i := range *a {
+				if i == length {
+					continue
+				}
+				(*a)[i] = int((b.ReadUint64()))
+			}
 		}
 
 	}
@@ -106,14 +111,20 @@ func (a *AliasIntPointerArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		length = int(b.ReadUint64())
 		if length > 0 {
-			temp := make([]*int, length)
-			for i := range temp {
+			if len(*a) < length {
+				*a = make([]*int, length)
+			}
+			for i := range *a {
+				if i == length {
+					continue
+				}
 				if b.ReadBool() {
-					temp[i] = new(int)
-					*temp[i] = int(b.ReadUint64())
+					if (*a)[i] == nil {
+						(*a)[i] = new(int)
+					}
+					*(*a)[i] = int((b.ReadUint64()))
 				}
 			}
-			*a = AliasIntPointerArray(temp)
 		}
 
 	}
@@ -159,11 +170,16 @@ func (a *AliasSubMessageArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		length = int(b.ReadUint64())
 		if length > 0 {
-			temp := make([]SubMessage, length)
-			for i := range temp {
-				(*SubMessage)(&temp[i]).UnmarshalBuffer(b)
+			if len(*a) < length {
+				*a = make([]SubMessage, length)
 			}
-			*a = AliasSubMessageArray(temp)
+
+			for i := range *a {
+				if i == length {
+					continue
+				}
+				(*SubMessage)(&(*a)[i]).UnmarshalBuffer(b)
+			}
 		}
 
 	}
@@ -195,14 +211,21 @@ func (a *AliasSubMessagePointerArray) UnmarshalBuffer(b *encodegen.ObjBuffer) er
 
 		length = int(b.ReadUint64())
 		if length > 0 {
-			temp := make([]*SubMessage, length)
-			for i := range temp {
+			if len(*a) < length {
+				*a = make([]*SubMessage, length)
+			}
+
+			for i := range *a {
+				if i == length {
+					continue
+				}
 				if b.ReadBool() {
-					temp[i] = new(SubMessage)
-					(*SubMessage)(temp[i]).UnmarshalBuffer(b)
+					if (*a)[i] == nil {
+						(*a)[i] = new(SubMessage)
+					}
+					(*SubMessage)((*a)[i]).UnmarshalBuffer(b)
 				}
 			}
-			*a = AliasSubMessagePointerArray(temp)
 		}
 
 	}
@@ -320,6 +343,9 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.ArrayAliasSubMessageField = make([]AliasSubMessage, length)
 			}
 			for i := range m.ArrayAliasSubMessageField {
+				if i == length {
+					break
+				}
 				(*AliasSubMessage)(&m.ArrayAliasSubMessageField[i]).UnmarshalBuffer(b)
 			}
 		}
@@ -356,6 +382,9 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.ArrayAliasSubMessagePointerArrayField = make([]AliasSubMessagePointerArray, length)
 			}
 			for i := range m.ArrayAliasSubMessagePointerArrayField {
+				if i == length {
+					break
+				}
 				(*AliasSubMessagePointerArray)(&m.ArrayAliasSubMessagePointerArrayField[i]).UnmarshalBuffer(b)
 			}
 		}
@@ -382,11 +411,11 @@ func (m *SubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(m.Id))
 
-		b.WritePrefixedBytes([]byte(m.Description))
+		b.WritePrefixedBytes(encodegen.StringToBytes(m.Description))
 
 		b.WriteUint64(uint64(len(m.Strings)))
 		for i := range m.Strings {
-			b.WritePrefixedBytes([]byte(m.Strings[i]))
+			b.WritePrefixedBytes(encodegen.StringToBytes(m.Strings[i]))
 		}
 
 	}
@@ -407,7 +436,10 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 				m.Strings = make([]string, length)
 			}
 			for i := range m.Strings {
-				m.Strings[i] = string(b.ReadPrefixedBytes())
+				if i == length {
+					break
+				}
+				m.Strings[i] = string(encodegen.BytesToString(b.ReadPrefixedBytes()))
 			}
 		}
 

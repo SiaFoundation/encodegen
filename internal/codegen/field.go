@@ -17,14 +17,17 @@ type Field struct {
 	RawComponentType   string
 	IsPointerComponent bool
 
-	DecodingMethod string
-	EncodingMethod string
-
-	PrimitiveWriteCast string
+	// DecodingMethod string
+	// EncodingMethod string
+	// PrimitiveWriteCast string
+	PrimitiveFunction PrimitiveFunctions
 
 	IsPointer bool
 	IsSlice   bool
-	Iterator  string
+	IsFixed   bool
+	FixedSize int
+
+	Iterator string
 
 	ReuseMemory bool
 
@@ -46,6 +49,8 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 		IsSlice:              field.IsSlice,
 		Alias:                owner.Alias,
 		AnonymousChildFields: field.AnonymousChildFields,
+		IsFixed:              field.IsFixed,
+		FixedSize:            field.FixedSize,
 	}
 
 	if fieldType != nil {
@@ -72,10 +77,7 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 	}
 
 	if isPrimitiveString(componentType) {
-		primitive := supportedPrimitives[componentType]
-		result.EncodingMethod = primitive.WriteFunction
-		result.DecodingMethod = primitive.ReadFunction
-		result.PrimitiveWriteCast = primitive.WriteCast
+		result.PrimitiveFunction = supportedPrimitives[componentType]
 	}
 
 	if result.IsPointerComponent {
@@ -83,6 +85,5 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 	} else {
 		result.RawComponentType = result.ComponentType
 	}
-
 	return result, nil
 }

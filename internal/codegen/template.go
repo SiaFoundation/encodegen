@@ -44,10 +44,10 @@ var fieldTemplate = map[int]string{
 		{{if .ReuseMemory}}
 		}
 		{{end}}
-		*{{.Accessor}} = {{.Type}}(b.{{.DecodingMethod}}())
+		*{{.Accessor}} = {{.Type}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}()))
 	}
 {{else}}
-	{{.Accessor}} = {{.Type}}(b.{{.DecodingMethod}}())
+	{{.Accessor}} = {{.Type}}(b.{{.PrimitiveFunction.ReadFunction}}())
 {{end}}
 `,
 	encodeBaseType: `
@@ -55,7 +55,7 @@ var fieldTemplate = map[int]string{
 	if {{.Accessor}} != nil {
 		b.WriteBool(true)
 {{end}}
-	b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{if .IsPointer}}*{{end}}{{.Accessor}}))
+	b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}({{if .IsPointer}}*{{end}}{{.Accessor}}))
 {{if .IsPointer}}
 	} else {
 		b.WriteBool(false)
@@ -76,6 +76,12 @@ if length > 0 {
 	b.Read({{.Accessor}})
 	{{else}}
 	for {{.Iterator}} := range {{.Accessor}} {
+		{{if .ReuseMemory}}
+		if {{.Iterator}} == length {
+			break
+		}
+		{{end}}
+
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
 			{{if .ReuseMemory}}
@@ -85,10 +91,10 @@ if length > 0 {
 			{{if .ReuseMemory}}
 			}
 			{{end}}
-			*{{.Accessor}}[{{.Iterator}}] = {{noPointer .ComponentType}}(b.{{.DecodingMethod}}())
+			*{{.Accessor}}[{{.Iterator}}] = {{noPointer .ComponentType}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}()))
 		}
 		{{else}}
-			{{.Accessor}}[{{.Iterator}}] = {{.ComponentType}}(b.{{.DecodingMethod}}())
+			{{.Accessor}}[{{.Iterator}}] = {{.ComponentType}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}()))
 		{{end}}
 	}
 	{{end}}
@@ -103,9 +109,9 @@ for {{.Iterator}} := range {{.Accessor}} {
 	{{if .IsPointerComponent}}
 	if {{.Accessor}}[{{.Iterator}}] != nil {
 		b.WriteBool(true)
-		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}(*{{.Accessor}}[{{.Iterator}}]))
+		b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}(*{{.Accessor}}[{{.Iterator}}]))
 	{{else}}
-		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{.Accessor}}[{{.Iterator}}]))
+		b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}({{.Accessor}}[{{.Iterator}}]))
 	{{end}}
 	{{if .IsPointerComponent}}
 	} else {
@@ -154,6 +160,11 @@ if length > 0 {
 	}
 	{{end}}
 	for {{.Iterator}} := range {{.Accessor}} {
+		{{if .ReuseMemory}}
+		if {{.Iterator}} == length {
+			break
+		}
+		{{end}}
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
 			{{if .ReuseMemory}}
@@ -186,26 +197,43 @@ for {{.Iterator}} := range {{.Accessor}} {
 	{{end}}
 }
 `, decodeAliasBaseType: `
-*{{.Accessor}} = {{.Name}}({{.Derived}}(b.{{.DecodingMethod}}()))
+*{{.Accessor}} = {{.Name}}({{.Derived}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}())))
 `, decodeAliasBaseTypeSlice: `
 length = int(b.ReadUint64())
 if length > 0 {
-	temp := make([]{{.ComponentType}}, length)
+	{{if .ReuseMemory}}
+	if len(*{{.Accessor}}) < length {
+	{{end}}
+	*{{.Accessor}} = make([]{{.ComponentType}}, length)
+	{{if .ReuseMemory}}
+	}
+	{{end}}
 	{{if and (eq .ComponentType "byte") (eq .IsPointerComponent false)}}
-	b.Read(temp)
+	b.Read(*{{.Accessor}})
 	{{else}}
-	for i := range temp {
+	for i := range *{{.Accessor}} {
+		{{if .ReuseMemory}}
+		if i == length {
+			continue
+		}
+		{{end}}
+
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
-			temp[i] = new({{noPointer .ComponentType}})		
-			*temp[i] = {{noPointer .ComponentType}}(b.{{.DecodingMethod}}())
+			{{if .ReuseMemory}}
+			if (*{{.Accessor}})[i] == nil {
+			{{end}}
+			(*{{.Accessor}})[i] = new({{noPointer .ComponentType}})
+			{{if .ReuseMemory}}
+			}
+			{{end}}
+			*(*{{.Accessor}})[i] = {{noPointer .ComponentType}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}()))
 		}
 		{{else}}
-			temp[i] = {{.ComponentType}}(b.{{.DecodingMethod}}())
+			(*{{.Accessor}})[i] = {{.ComponentType}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}()))
 		{{end}}
 	}
 	{{end}}
-	*{{.Accessor}} = {{.Name}}(temp)
 }
 `, encodeAliasBaseTypeSlice: `
 b.WriteUint64(uint64(len(*{{.Accessor}})))
@@ -217,9 +245,9 @@ for i := range temp {
 	{{if .IsPointerComponent}}
 	if temp[i] != nil {
 		b.WriteBool(true)
-		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}(*temp[i]))
+		b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}(*temp[i]))
 	{{else}}
-		b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}(temp[i]))
+		b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}(temp[i]))
 	{{end}}
 	{{if .IsPointerComponent}}
 	} else {
@@ -230,7 +258,7 @@ for i := range temp {
 {{end}}
 `,
 	encodeAliasBaseType: `
-b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{.Derived}}(*{{.Accessor}})))
+b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}({{.Derived}}(*{{.Accessor}})))
 `,
 	decodeAliasStruct: `
 (*{{.Derived}})({{.Accessor}}).UnmarshalBuffer(b)
@@ -241,18 +269,36 @@ b.{{.EncodingMethod}}({{.PrimitiveWriteCast}}({{.Derived}}(*{{.Accessor}})))
 	decodeAliasStructSlice: `
 length = int(b.ReadUint64())
 if length > 0 {
-	temp := make([]{{.ComponentType}}, length)
-	for i := range temp {
+	{{if .ReuseMemory}}
+	if len(*{{.Accessor}}) < length {
+	{{end}}
+	*{{.Accessor}} = make([]{{.ComponentType}}, length)
+	{{if .ReuseMemory}}
+	}
+	{{end}}
+
+	for i := range *{{.Accessor}} {
+		{{if .ReuseMemory}}
+		if i == length {
+			continue
+		}
+		{{end}}
+
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
-			temp[i] = new({{noPointer .ComponentType}})		
-			({{.ComponentType}})(temp[i]).UnmarshalBuffer(b)
+			{{if .ReuseMemory}}
+			if (*{{.Accessor}})[i] == nil {
+			{{end}}
+			(*{{.Accessor}})[i] = new({{noPointer .ComponentType}})		
+			{{if .ReuseMemory}}
+			}
+			{{end}}
+			({{.ComponentType}})((*{{.Accessor}})[i]).UnmarshalBuffer(b)
 		}
 		{{else}}
-			(*{{.ComponentType}})(&temp[i]).UnmarshalBuffer(b)
+			(*{{.ComponentType}})(&(*{{.Accessor}})[i]).UnmarshalBuffer(b)
 		{{end}}
 	}
-	*{{.Accessor}} = {{.Name}}(temp)
 }
 `, encodeAliasStructSlice: `
 b.WriteUint64(uint64(len(*{{.Accessor}})))
@@ -299,8 +345,12 @@ if length > 0 {
 	{{if .ReuseMemory}}
 	}
 	{{end}}
-
 	for {{.Iterator}} := range {{.Accessor}} {
+		{{if .ReuseMemory}}
+		if {{.Iterator}} == length {
+			break
+		}
+		{{end}}
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
 			{{if .ReuseMemory}}
@@ -334,6 +384,7 @@ for {{.Iterator}} := range {{.Accessor}} {
 }
 `,
 }
+
 const (
 	fileCode = iota
 	encodingStructType
@@ -341,6 +392,7 @@ const (
 	structTypeSlice
 	typeSlice
 )
+
 var blockTemplate = map[int]string{
 	fileCode: `// Code generated by encodegen. DO NOT EDIT.
 package {{base .Pkg}}
@@ -367,7 +419,6 @@ if {{.Alias}} != nil {
 }`,
 }
 
-
 func noPointer(s string) string {
 	return strings.TrimPrefix(s, "*")
 }
@@ -388,6 +439,9 @@ func expandTemplate(namespace string, dictionary map[int]string, key int, data i
 	writer := new(bytes.Buffer)
 	err = temlate.Execute(writer, data)
 	// fmt.Printf("Call template with key, %d, data: %+v\n", key, data)
+	if err != nil {
+		panic(err)
+	}
 	return writer.String(), err
 }
 

@@ -1,13 +1,13 @@
 package codegen
 
 import (
-	"regexp"
 	"fmt"
 	"go.sia.tech/encodegen/internal/toolbox"
 	"go/format"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 

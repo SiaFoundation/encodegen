@@ -11,5 +11,5 @@ type Message struct {
 	IsTrue      *bool
 	Payload     []byte
 	Strings     []string
-	// SQLNullString *sql.NullString
+	// FixedBytes [40]byte
 }

@@ -8,6 +8,7 @@ import (
 	"go/types"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -27,6 +28,8 @@ type FieldInfo struct {
 	Tag                  string
 	Comment              string
 	IsVariant            bool
+	IsFixed              bool
+	FixedSize            int
 	AnonymousChildFields []*FieldInfo
 }
 
@@ -374,6 +377,19 @@ func (f *FileInfo) getFieldWithAnonymousChildren(field *ast.Field) *FieldInfo {
 			}
 		case *ast.StructType:
 			newField = f.anonymousAddStructFields(field, eltTypeValue)
+		}
+		if value.Len != nil {
+			lenType, ok := value.Len.(*ast.BasicLit)
+			if !ok {
+				return newField
+			}
+
+			lenValue, err := strconv.Atoi(lenType.Value)
+			if err != nil {
+				return newField
+			}
+			newField.IsFixed = true
+			newField.FixedSize = lenValue
 		}
 	}
 	return newField

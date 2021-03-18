@@ -199,7 +199,7 @@ func (s *Struct) generateAnonymousStructCases(field *Field, reuseMemory bool, an
 		Cases              string
 		Iterator           string
 		IsPointerComponent bool
-		ReuseMemory bool
+		ReuseMemory        bool
 	}{
 		field.Accessor,
 		field.Type,
@@ -231,19 +231,17 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo, reuseMemory bo
 		Accessor           string
 		Derived            string
 		Name               string
-		DecodingMethod     string
-		EncodingMethod     string
-		PrimitiveWriteCast string
+		PrimitiveFunction  PrimitiveFunctions
 		ComponentType      string
 		IsPointerComponent bool
-		ReuseMemory bool
+		ReuseMemory        bool
 	}{
 		Accessor:           s.Alias,
 		Derived:            structInfo.Derived,
 		Name:               structInfo.Name,
 		ComponentType:      structInfo.ComponentType,
 		IsPointerComponent: structInfo.IsPointerComponentType,
-		ReuseMemory: reuseMemory,
+		ReuseMemory:        reuseMemory,
 	}
 	if structInfo.IsPointerComponentType {
 		newStructInfo.ComponentType = "*" + structInfo.ComponentType
@@ -251,15 +249,11 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo, reuseMemory bo
 
 	if (isPrimitiveString(structInfo.Derived) || isPrimitiveArrayString(structInfo.Derived)) || (isPrimitiveString(structInfo.ComponentType) || isPrimitiveArrayString(structInfo.ComponentType)) {
 		if structInfo.IsSlice {
-			newStructInfo.DecodingMethod = supportedPrimitives[structInfo.ComponentType].ReadFunction
-			newStructInfo.EncodingMethod = supportedPrimitives[structInfo.ComponentType].WriteFunction
-			newStructInfo.PrimitiveWriteCast = supportedPrimitives[structInfo.ComponentType].WriteCast
+			newStructInfo.PrimitiveFunction = supportedPrimitives[structInfo.ComponentType]
 			decodeKey = decodeAliasBaseTypeSlice
 			encodeKey = encodeAliasBaseTypeSlice
 		} else {
-			newStructInfo.DecodingMethod = supportedPrimitives[structInfo.Derived].ReadFunction
-			newStructInfo.EncodingMethod = supportedPrimitives[structInfo.Derived].WriteFunction
-			newStructInfo.PrimitiveWriteCast = supportedPrimitives[structInfo.Derived].WriteCast
+			newStructInfo.PrimitiveFunction = supportedPrimitives[structInfo.Derived]
 
 			decodeKey = decodeAliasBaseType
 			encodeKey = encodeAliasBaseType
