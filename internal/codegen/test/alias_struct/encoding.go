@@ -25,6 +25,7 @@ func (s *AliasByteSlice) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(*s) < length {
 				*s = make([]byte, length)
 			}
+			(*s) = (*s)[:length]
 			b.Read(*s)
 		}
 
@@ -74,6 +75,7 @@ func (a *AliasIntArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(*a) < length {
 				*a = make([]int, length)
 			}
+			(*a) = (*a)[:length]
 			for i := range *a {
 				if i == length {
 					continue
@@ -114,6 +116,7 @@ func (a *AliasIntPointerArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(*a) < length {
 				*a = make([]*int, length)
 			}
+			(*a) = (*a)[:length]
 			for i := range *a {
 				if i == length {
 					continue
@@ -173,7 +176,7 @@ func (a *AliasSubMessageArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(*a) < length {
 				*a = make([]SubMessage, length)
 			}
-
+			(*a) = (*a)[:length]
 			for i := range *a {
 				if i == length {
 					continue
@@ -214,7 +217,7 @@ func (a *AliasSubMessagePointerArray) UnmarshalBuffer(b *encodegen.ObjBuffer) er
 			if len(*a) < length {
 				*a = make([]*SubMessage, length)
 			}
-
+			(*a) = (*a)[:length]
 			for i := range *a {
 				if i == length {
 					continue
@@ -342,6 +345,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.ArrayAliasSubMessageField) < length {
 				m.ArrayAliasSubMessageField = make([]AliasSubMessage, length)
 			}
+			m.ArrayAliasSubMessageField = m.ArrayAliasSubMessageField[:length]
 			for i := range m.ArrayAliasSubMessageField {
 				if i == length {
 					break
@@ -381,6 +385,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.ArrayAliasSubMessagePointerArrayField) < length {
 				m.ArrayAliasSubMessagePointerArrayField = make([]AliasSubMessagePointerArray, length)
 			}
+			m.ArrayAliasSubMessagePointerArrayField = m.ArrayAliasSubMessagePointerArrayField[:length]
 			for i := range m.ArrayAliasSubMessagePointerArrayField {
 				if i == length {
 					break
@@ -396,6 +401,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.ByteSlice) < length {
 				m.ByteSlice = make([]byte, length)
 			}
+			m.ByteSlice = m.ByteSlice[:length]
 			b.Read(m.ByteSlice)
 		}
 
@@ -435,6 +441,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.Strings) < length {
 				m.Strings = make([]string, length)
 			}
+			m.Strings = m.Strings[:length]
 			for i := range m.Strings {
 				if i == length {
 					break

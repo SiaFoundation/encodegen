@@ -63,6 +63,7 @@ var fieldTemplate = map[int]string{
 {{end}}
 `,
 	decodeBaseTypeSlice: `
+{{if not .IsFixed}}
 length = int(b.ReadUint64())
 if length > 0 {
 	{{if .ReuseMemory}}
@@ -72,11 +73,13 @@ if length > 0 {
 	{{if .ReuseMemory}}
 	}
 	{{end}}
+	{{.Accessor}} = {{.Accessor}}[:length]
+	{{end}}
 	{{if and (eq .ComponentType "byte") (.IsSlice) (eq .IsPointerComponent false) (eq .IsPointer false)}}
-	b.Read({{.Accessor}})
+	b.Read({{.Accessor}}{{if .IsFixed}}[:]{{end}})
 	{{else}}
 	for {{.Iterator}} := range {{.Accessor}} {
-		{{if .ReuseMemory}}
+		{{if and .ReuseMemory (not .IsFixed)}}
 		if {{.Iterator}} == length {
 			break
 		}
@@ -98,12 +101,16 @@ if length > 0 {
 		{{end}}
 	}
 	{{end}}
+{{if not .IsFixed}}
 }
+{{end}}
 `,
 	encodeBaseTypeSlice: `
+{{if not .IsFixed}}
 b.WriteUint64(uint64(len({{.Accessor}})))
+{{end}}
 {{if and (eq .ComponentType "byte") (.IsSlice) (eq .IsPointerComponent false) (eq .IsPointer false)}}
-b.Write({{.Accessor}})
+b.Write({{.Accessor}}{{if .IsFixed}}[:]{{end}})
 {{else}}
 for {{.Iterator}} := range {{.Accessor}} {
 	{{if .IsPointerComponent}}
@@ -150,6 +157,7 @@ for {{.Iterator}} := range {{.Accessor}} {
 {{end}}
 `,
 	decodeStructSlice: `
+{{if not .IsFixed}}
 length = int(b.ReadUint64())
 if length > 0 {
 	{{if .ReuseMemory}}
@@ -158,9 +166,11 @@ if length > 0 {
 	{{.Accessor}} = make({{.RawType}}, length)
 	{{if .ReuseMemory}}
 	}
+	{{.Accessor}} = {{.Accessor}}[:length]
+	{{end}}
 	{{end}}
 	for {{.Iterator}} := range {{.Accessor}} {
-		{{if .ReuseMemory}}
+		{{if and .ReuseMemory (not .IsFixed)}}
 		if {{.Iterator}} == length {
 			break
 		}
@@ -180,10 +190,14 @@ if length > 0 {
 			(*{{.ComponentType}})(&{{.Accessor}}[{{.Iterator}}]).UnmarshalBuffer(b)
 		{{end}}
 	}
+{{if not .IsFixed}}
 }
+{{end}}
 `,
 	encodeStructSlice: `
+{{if not .IsFixed}}
 b.WriteUint64(uint64(len({{.Accessor}})))
+{{end}}
 for {{.Iterator}} := range {{.Accessor}} {
 	{{if .IsPointerComponent}}
 	if {{.Accessor}}[{{.Iterator}}] != nil {
@@ -208,6 +222,7 @@ if length > 0 {
 	{{if .ReuseMemory}}
 	}
 	{{end}}
+	(*{{.Accessor}}) = (*{{.Accessor}})[:length]
 	{{if and (eq .ComponentType "byte") (eq .IsPointerComponent false)}}
 	b.Read(*{{.Accessor}})
 	{{else}}
@@ -276,7 +291,7 @@ if length > 0 {
 	{{if .ReuseMemory}}
 	}
 	{{end}}
-
+	(*{{.Accessor}}) = (*{{.Accessor}})[:length]
 	for i := range *{{.Accessor}} {
 		{{if .ReuseMemory}}
 		if i == length {
@@ -345,6 +360,7 @@ if length > 0 {
 	{{if .ReuseMemory}}
 	}
 	{{end}}
+	{{.Accessor}} = {{.Accessor}}[:length]
 	for {{.Iterator}} := range {{.Accessor}} {
 		{{if .ReuseMemory}}
 		if {{.Iterator}} == length {

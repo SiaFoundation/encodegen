@@ -58,7 +58,7 @@ func getNextIterator(currentIdentifier string) string {
 
 func fieldsHaveSlice(fields []*toolbox.FieldInfo) bool {
 	for _, field := range fields {
-		if field.IsSlice {
+		if field.IsSlice && !field.IsFixed {
 			return true
 		}
 		if len(field.AnonymousChildFields) > 0 {

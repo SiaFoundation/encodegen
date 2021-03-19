@@ -1,5 +1,9 @@
 package codegen
 
+import (
+	"regexp"
+)
+
 const ReadBoolFunction = "ReadBool"
 const ReadIntFunction = "ReadUint64"
 const ReadStringFunction = "ReadPrefixedBytes"
@@ -28,6 +32,11 @@ var IntPrimitiveFunctions = PrimitiveFunctions{
 	WriteFunction: WriteIntFunction,
 	WriteCast:     "uint64",
 }
+var UInt8PrimitiveFunctions = PrimitiveFunctions{
+	ReadFunction:  ReadByteFunction,
+	WriteFunction: WriteByteFunction,
+	WriteCast:     "uint8",
+}
 
 var BoolPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadBoolFunction, WriteFunction: WriteBoolFunction, WriteCast: ""}
 var StringPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadStringFunction, WriteFunction: WriteStringFunction, WriteCast: "encodegen.StringToBytes", ReadCast: "encodegen.BytesToString"}
@@ -43,7 +52,7 @@ var supportedPrimitives = map[string]PrimitiveFunctions{
 	"int32":  IntPrimitiveFunctions,
 	"int64":  IntPrimitiveFunctions,
 	"uint":   IntPrimitiveFunctions,
-	"uint8":  IntPrimitiveFunctions,
+	"uint8":  UInt8PrimitiveFunctions,
 	"uint16": IntPrimitiveFunctions,
 	"uint32": IntPrimitiveFunctions,
 	"uint64": Uint64PrimitiveFunctions,
@@ -57,7 +66,7 @@ var supportedPrimitives = map[string]PrimitiveFunctions{
 	"*int32":  IntPrimitiveFunctions,
 	"*int64":  IntPrimitiveFunctions,
 	"*uint":   IntPrimitiveFunctions,
-	"*uint8":  IntPrimitiveFunctions,
+	"*uint8":  UInt8PrimitiveFunctions,
 	"*uint16": IntPrimitiveFunctions,
 	"*uint32": IntPrimitiveFunctions,
 	"*uint64": Uint64PrimitiveFunctions,
@@ -73,7 +82,7 @@ var supportedPrimitivesArray = map[string]PrimitiveFunctions{
 	"[]int32":  IntPrimitiveFunctions,
 	"[]int64":  IntPrimitiveFunctions,
 	"[]uint":   IntPrimitiveFunctions,
-	"[]uint8":  IntPrimitiveFunctions,
+	"[]uint8":  UInt8PrimitiveFunctions,
 	"[]uint16": IntPrimitiveFunctions,
 	"[]uint32": IntPrimitiveFunctions,
 	"[]uint64": Uint64PrimitiveFunctions,
@@ -87,7 +96,7 @@ var supportedPrimitivesArray = map[string]PrimitiveFunctions{
 	"[]*int32":  IntPrimitiveFunctions,
 	"[]*int64":  IntPrimitiveFunctions,
 	"[]*uint":   IntPrimitiveFunctions,
-	"[]*uint8":  IntPrimitiveFunctions,
+	"[]*uint8":  UInt8PrimitiveFunctions,
 	"[]*uint16": IntPrimitiveFunctions,
 	"[]*uint32": IntPrimitiveFunctions,
 	"[]*uint64": Uint64PrimitiveFunctions,
@@ -99,6 +108,8 @@ func isPrimitiveString(t string) bool {
 }
 
 func isPrimitiveArrayString(t string) bool {
-	_, ok := supportedPrimitivesArray[t]
+	// e.g. [40]byte -> []byte
+	var re = regexp.MustCompile(`(?m)\[(.*)\]`)
+	_, ok := supportedPrimitivesArray[re.ReplaceAllString(t, "[]")]
 	return ok
 }

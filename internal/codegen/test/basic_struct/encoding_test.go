@@ -8,6 +8,12 @@ import (
 )
 
 var isTrue = true
+var testInt = 511
+var testSubMessage = SubMessage{
+	Id:          -1,
+	Description: "ABC",
+	Strings:     []string{"A", "B", "C", "X", "Y", "Z"},
+}
 var msg = Message{
 	Id:   1022,
 	Name: "name acc",
@@ -36,9 +42,25 @@ var msg = Message{
 			Description: "abcgg",
 		},
 	},
-	IsTrue:  &isTrue,
-	Payload: []byte{11, 1, 1, 123, 123, 123, 123},
-	// Payload: nil,
+	IsTrue:           &isTrue,
+	Payload:          []byte{11, 1, 1, 123, 123, 123, 123},
+	FixedBytes:       [9]byte{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'},
+	FixedInts:        [5]int{4, 4, 4, 4, 4},
+	FixedIntPointers: [40]*int{nil, &testInt, nil, &testInt, nil, nil, nil},
+	FixedUint8s:      [40]uint8{1, 1, 1, 1, 1, 1, 1, 0},
+	FixedSubMessage: [2]SubMessage{
+		{
+			Id:          500,
+			Description: "AAAA",
+			Strings:     nil,
+		},
+		{
+			Id:          444,
+			Description: "WWW",
+			Strings:     []string{"W", "W", "W"},
+		},
+	},
+	FixedPointerSubMessage: [5]*SubMessage{nil, &testSubMessage, &testSubMessage, &testSubMessage, nil},
 }
 
 func TestMessage(t *testing.T) {

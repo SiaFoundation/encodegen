@@ -141,6 +141,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.Anonymous.IntegerSliceField) < length {
 				m.Anonymous.IntegerSliceField = make([]int, length)
 			}
+			m.Anonymous.IntegerSliceField = m.Anonymous.IntegerSliceField[:length]
 			for i1 := range m.Anonymous.IntegerSliceField {
 				if i1 == length {
 					break
@@ -190,6 +191,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 					}
 				}, length)
 			}
+			m.Anonymous4 = m.Anonymous4[:length]
 			for i := range m.Anonymous4 {
 				if i == length {
 					break
@@ -202,6 +204,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 					if len(m.Anonymous4[i].IntegerSliceField) < length {
 						m.Anonymous4[i].IntegerSliceField = make([]int, length)
 					}
+					m.Anonymous4[i].IntegerSliceField = m.Anonymous4[i].IntegerSliceField[:length]
 					for i1 := range m.Anonymous4[i].IntegerSliceField {
 						if i1 == length {
 							break
@@ -218,6 +221,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 							B *struct{ A int }
 						}, length)
 					}
+					m.Anonymous4[i].Anonymous5 = m.Anonymous4[i].Anonymous5[:length]
 					for i1 := range m.Anonymous4[i].Anonymous5 {
 						if i1 == length {
 							break
@@ -228,6 +232,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 							if len(m.Anonymous4[i].Anonymous5[i1].A) < length {
 								m.Anonymous4[i].Anonymous5[i1].A = make([]int, length)
 							}
+							m.Anonymous4[i].Anonymous5[i1].A = m.Anonymous4[i].Anonymous5[i1].A[:length]
 							for i2 := range m.Anonymous4[i].Anonymous5[i1].A {
 								if i2 == length {
 									break
@@ -259,6 +264,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 					B []AliasSubMessage
 				}, length)
 			}
+			m.Anonymous5 = m.Anonymous5[:length]
 			for i := range m.Anonymous5 {
 				if i == length {
 					break
@@ -271,6 +277,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 					if len(m.Anonymous5[i].B) < length {
 						m.Anonymous5[i].B = make([]AliasSubMessage, length)
 					}
+					m.Anonymous5[i].B = m.Anonymous5[i].B[:length]
 					for i1 := range m.Anonymous5[i].B {
 						if i1 == length {
 							break
@@ -287,6 +294,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.Anonymous6) < length {
 				m.Anonymous6 = make([]*struct{ A int }, length)
 			}
+			m.Anonymous6 = m.Anonymous6[:length]
 			for i := range m.Anonymous6 {
 				if i == length {
 					break
@@ -338,6 +346,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.Strings) < length {
 				m.Strings = make([]string, length)
 			}
+			m.Strings = m.Strings[:length]
 			for i := range m.Strings {
 				if i == length {
 					break

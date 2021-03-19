@@ -57,6 +57,38 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 			b.WritePrefixedBytes(encodegen.StringToBytes(m.Strings[i]))
 		}
 
+		b.Write(m.FixedBytes[:])
+
+		for i := range m.FixedInts {
+			b.WriteUint64(uint64(m.FixedInts[i]))
+		}
+
+		for i := range m.FixedIntPointers {
+			if m.FixedIntPointers[i] != nil {
+				b.WriteBool(true)
+				b.WriteUint64(uint64(*m.FixedIntPointers[i]))
+			} else {
+				b.WriteBool(false)
+			}
+		}
+
+		for i := range m.FixedUint8s {
+			b.WriteByte(uint8(m.FixedUint8s[i]))
+		}
+
+		for i := range m.FixedSubMessage {
+			m.FixedSubMessage[i].MarshalBuffer(b)
+		}
+
+		for i := range m.FixedPointerSubMessage {
+			if m.FixedPointerSubMessage[i] != nil {
+				b.WriteBool(true)
+				m.FixedPointerSubMessage[i].MarshalBuffer(b)
+			} else {
+				b.WriteBool(false)
+			}
+		}
+
 	}
 }
 
@@ -74,6 +106,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.Ints) < length {
 				m.Ints = make([]int, length)
 			}
+			m.Ints = m.Ints[:length]
 			for i := range m.Ints {
 				if i == length {
 					break
@@ -94,6 +127,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.MessagesX) < length {
 				m.MessagesX = make([]*SubMessage, length)
 			}
+			m.MessagesX = m.MessagesX[:length]
 			for i := range m.MessagesX {
 				if i == length {
 					break
@@ -114,6 +148,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.MessagesY) < length {
 				m.MessagesY = make([]SubMessage, length)
 			}
+			m.MessagesY = m.MessagesY[:length]
 			for i := range m.MessagesY {
 				if i == length {
 					break
@@ -134,6 +169,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.Payload) < length {
 				m.Payload = make([]byte, length)
 			}
+			m.Payload = m.Payload[:length]
 			b.Read(m.Payload)
 		}
 
@@ -142,11 +178,44 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.Strings) < length {
 				m.Strings = make([]string, length)
 			}
+			m.Strings = m.Strings[:length]
 			for i := range m.Strings {
 				if i == length {
 					break
 				}
 				m.Strings[i] = string(encodegen.BytesToString(b.ReadPrefixedBytes()))
+			}
+		}
+
+		b.Read(m.FixedBytes[:])
+
+		for i := range m.FixedInts {
+			m.FixedInts[i] = int((b.ReadUint64()))
+		}
+
+		for i := range m.FixedIntPointers {
+			if b.ReadBool() {
+				if m.FixedIntPointers[i] == nil {
+					m.FixedIntPointers[i] = new(int)
+				}
+				*m.FixedIntPointers[i] = int((b.ReadUint64()))
+			}
+		}
+
+		for i := range m.FixedUint8s {
+			m.FixedUint8s[i] = uint8((b.ReadByte()))
+		}
+
+		for i := range m.FixedSubMessage {
+			(*SubMessage)(&m.FixedSubMessage[i]).UnmarshalBuffer(b)
+		}
+
+		for i := range m.FixedPointerSubMessage {
+			if b.ReadBool() {
+				if m.FixedPointerSubMessage[i] == nil {
+					m.FixedPointerSubMessage[i] = new(SubMessage)
+				}
+				m.FixedPointerSubMessage[i].UnmarshalBuffer(b)
 			}
 		}
 
@@ -184,6 +253,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			if len(m.Strings) < length {
 				m.Strings = make([]string, length)
 			}
+			m.Strings = m.Strings[:length]
 			for i := range m.Strings {
 				if i == length {
 					break

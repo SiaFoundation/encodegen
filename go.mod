@@ -3,7 +3,6 @@ module go.sia.tech/encodegen
 go 1.14
 
 require (
-	github.com/davecgh/go-spew v1.1.0
 	github.com/go-errors/errors v1.1.1
 	github.com/lunixbochs/vtclean v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1

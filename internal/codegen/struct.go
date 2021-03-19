@@ -116,15 +116,8 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, reuseMemory b
 			decodeTemplateKey = decodeBaseTypeSlice
 			encodeTemplateKey = encodeBaseTypeSlice
 		default:
-
 			if fieldTypeInfo != nil {
 				if !(field.IsSlice || fieldTypeInfo.IsSlice) {
-					decodeTemplateKey = decodeStruct
-					encodeTemplateKey = encodeStruct
-					break main
-				}
-
-				if isPrimitiveString(fieldTypeInfo.ComponentType) {
 					decodeTemplateKey = decodeStruct
 					encodeTemplateKey = encodeStruct
 					break main
@@ -147,7 +140,10 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, reuseMemory b
 			} else if field.IsSlice {
 				decodeTemplateKey = decodeStructSlice
 				encodeTemplateKey = encodeStructSlice
-
+				err := s.generateStructCode(Type{Name: field.ComponentType, ReuseMemory: reuseMemory})
+				if err != nil {
+					return nil, nil, err
+				}
 			} else {
 				continue
 			}
