@@ -128,8 +128,10 @@ var msg = Message{
 			B: nil,
 		},
 	},
-	Anonymous6: []*struct{ A int }{nil, nil, &anonymous3Struct, nil},
-	End:        -7222,
+	Anonymous6:            []*struct{ A int }{nil, nil, &anonymous3Struct, nil},
+	AnonymousFixed:        [5]struct{ A int }{anonymous3Struct, anonymous3Struct, anonymous3Struct, anonymous3Struct, anonymous3Struct},
+	AnonymousPointerFixed: [5]*struct{ A int }{nil, &anonymous3Struct, nil, &anonymous3Struct, &anonymous3Struct},
+	End:                   -7222,
 }
 
 func TestMessage(t *testing.T) {

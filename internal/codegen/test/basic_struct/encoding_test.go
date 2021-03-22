@@ -15,9 +15,10 @@ var testSubMessage = SubMessage{
 	Strings:     []string{"A", "B", "C", "X", "Y", "Z"},
 }
 var msg = Message{
-	Id:   1022,
-	Name: "name acc",
-	Ints: []int{1, 2, 5},
+	Id:     1022,
+	Name:   "name acc",
+	Ints:   []int{1, 2, 5},
+	Uint8s: []uint8{1, 2, 5},
 	SubMessageX: &SubMessage{
 		Id:          102,
 		Description: "abcd",
@@ -48,7 +49,7 @@ var msg = Message{
 	FixedInts:        [5]int{4, 4, 4, 4, 4},
 	FixedIntPointers: [40]*int{nil, &testInt, nil, &testInt, nil, nil, nil},
 	FixedUint8s:      [40]uint8{1, 1, 1, 1, 1, 1, 1, 0},
-	FixedSubMessage: [2]SubMessage{
+	FixedSubMessage: [5]SubMessage{
 		{
 			Id:          500,
 			Description: "AAAA",

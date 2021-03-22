@@ -73,7 +73,7 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 	componentType := field.ComponentType
 	if componentType == "" && (fieldType == nil || fieldType.Derived != "") {
 		componentType = result.Type
-		result.ComponentType = strings.TrimPrefix(strings.TrimPrefix(result.Type, "[]"), "*")
+		result.ComponentType = strings.TrimPrefix(strings.TrimPrefix(fixedToSliceType(result.Type), "[]"), "*")
 	}
 
 	if isPrimitiveString(componentType) {

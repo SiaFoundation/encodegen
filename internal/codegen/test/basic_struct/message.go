@@ -4,6 +4,7 @@ type Message struct {
 	Id                     int
 	Name                   string
 	Ints                   []int
+	Uint8s                 []uint8
 	SubMessageX            *SubMessage
 	MessagesX              []*SubMessage
 	SubMessageY            SubMessage
@@ -15,6 +16,6 @@ type Message struct {
 	FixedInts              [5]int
 	FixedIntPointers       [40]*int
 	FixedUint8s            [40]uint8
-	FixedSubMessage        [2]SubMessage
+	FixedSubMessage        [5]SubMessage
 	FixedPointerSubMessage [5]*SubMessage
 }

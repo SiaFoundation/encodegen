@@ -200,6 +200,8 @@ type TypeInfo struct {
 	ComponentType          string
 	IsPointerComponentType bool
 	Derived                string
+	IsFixed                bool
+	FixedSize              int
 	Settings               map[string]string
 	fields                 []*FieldInfo
 	indexedField           map[string]*FieldInfo
@@ -431,6 +433,20 @@ func (f *FileInfo) Visit(node ast.Node) ast.Visitor {
 					}
 					typeInfo.IsPointerComponentType = true
 				}
+				if typeValue.Len != nil {
+					typeInfo.IsFixed = true
+					lenType, ok := typeValue.Len.(*ast.BasicLit)
+					if !ok {
+						break
+					}
+
+					lenValue, err := strconv.Atoi(lenType.Value)
+					if err != nil {
+						break
+					}
+					typeInfo.FixedSize = lenValue
+				}
+
 			case *ast.StructType:
 				typeInfo.IsStruct = true
 			case *ast.InterfaceType:

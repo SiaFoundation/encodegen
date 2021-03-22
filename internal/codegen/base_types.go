@@ -1,9 +1,5 @@
 package codegen
 
-import (
-	"regexp"
-)
-
 const ReadBoolFunction = "ReadBool"
 const ReadIntFunction = "ReadUint64"
 const ReadStringFunction = "ReadPrefixedBytes"
@@ -109,7 +105,8 @@ func isPrimitiveString(t string) bool {
 
 func isPrimitiveArrayString(t string) bool {
 	// e.g. [40]byte -> []byte
-	var re = regexp.MustCompile(`(?m)\[(.*)\]`)
-	_, ok := supportedPrimitivesArray[re.ReplaceAllString(t, "[]")]
+	// var re = regexp.MustCompile(`(?m)\[(.*)\]`)
+	// _, ok := supportedPrimitivesArray[re.ReplaceAllString(t, "[]")]
+	_, ok := supportedPrimitivesArray[fixedToSliceType(t)]
 	return ok
 }

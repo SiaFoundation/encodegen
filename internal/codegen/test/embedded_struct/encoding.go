@@ -120,6 +120,23 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 			}
 		}
 
+		for i := range m.AnonymousFixed {
+
+			b.WriteUint64(uint64(m.AnonymousFixed[i].A))
+
+		}
+
+		for i := range m.AnonymousPointerFixed {
+			if m.AnonymousPointerFixed[i] != nil {
+				b.WriteBool(true)
+
+				b.WriteUint64(uint64(m.AnonymousPointerFixed[i].A))
+
+			} else {
+				b.WriteBool(false)
+			}
+		}
+
 		b.WriteUint64(uint64(m.End))
 
 	}
@@ -129,6 +146,7 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 	if m != nil {
 		var length int = 0
+		_ = length
 
 		m.Id = int(b.ReadUint64())
 
@@ -310,6 +328,23 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 		}
 
+		for i := range m.AnonymousFixed {
+
+			m.AnonymousFixed[i].A = int(b.ReadUint64())
+
+		}
+
+		for i := range m.AnonymousPointerFixed {
+			if b.ReadBool() {
+				if m.AnonymousPointerFixed[i] == nil {
+					m.AnonymousPointerFixed[i] = new(struct{ A int })
+				}
+
+				m.AnonymousPointerFixed[i].A = int(b.ReadUint64())
+
+			}
+		}
+
 		m.End = int(b.ReadUint64())
 
 	}
@@ -336,6 +371,7 @@ func (m *SubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
 func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 	if m != nil {
 		var length int = 0
+		_ = length
 
 		m.Id = int(b.ReadUint64())
 

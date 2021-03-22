@@ -213,6 +213,7 @@ for {{.Iterator}} := range {{.Accessor}} {
 `, decodeAliasBaseType: `
 *{{.Accessor}} = {{.Name}}({{.Derived}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}())))
 `, decodeAliasBaseTypeSlice: `
+{{if not .IsFixed}}
 length = int(b.ReadUint64())
 if length > 0 {
 	{{if .ReuseMemory}}
@@ -223,11 +224,21 @@ if length > 0 {
 	}
 	{{end}}
 	(*{{.Accessor}}) = (*{{.Accessor}})[:length]
+{{end}}
 	{{if and (eq .ComponentType "byte") (eq .IsPointerComponent false)}}
-	b.Read(*{{.Accessor}})
+
+	{{if .IsFixed}}
+	temp := [{{.FixedSize}}]{{.ComponentType}}(*{{.Accessor}})
+	b.Read(temp[:])
+	*{{.Accessor}} = temp
+
+	{{else}}
+	b.Read(*{{.Accessor}}{{if .IsFixed}}[:]{{end}})
+	{{end}}
+
 	{{else}}
 	for i := range *{{.Accessor}} {
-		{{if .ReuseMemory}}
+		{{if and .ReuseMemory (not .IsFixed)}}
 		if i == length {
 			continue
 		}
@@ -249,13 +260,24 @@ if length > 0 {
 		{{end}}
 	}
 	{{end}}
+{{if not .IsFixed}}
 }
+{{end}}
 `, encodeAliasBaseTypeSlice: `
+{{if not .IsFixed}}
 b.WriteUint64(uint64(len(*{{.Accessor}})))
+{{end}}
 {{if and (eq .ComponentType "byte") (eq .IsPointerComponent false)}}
-b.Write([]{{.ComponentType}}(*{{.Accessor}}))
+
+{{if .IsFixed}}
+temp := [{{.FixedSize}}]{{.ComponentType}}(*{{.Accessor}})
+b.Write([]byte(temp{{if .IsFixed}}[:]{{end}}))
 {{else}}
-temp := []{{.ComponentType}}(*{{.Accessor}})
+b.Write([]{{.ComponentType}}(*{{.Accessor}}))
+{{end}}
+
+{{else}}
+temp := [{{if .IsFixed}}{{.FixedSize}}{{end}}]{{.ComponentType}}(*{{.Accessor}})
 for i := range temp {
 	{{if .IsPointerComponent}}
 	if temp[i] != nil {
@@ -282,6 +304,7 @@ b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}({{.Deriv
 (*{{.Derived}})({{.Accessor}}).MarshalBuffer(b)
 `,
 	decodeAliasStructSlice: `
+{{if not .IsFixed}}
 length = int(b.ReadUint64())
 if length > 0 {
 	{{if .ReuseMemory}}
@@ -292,8 +315,9 @@ if length > 0 {
 	}
 	{{end}}
 	(*{{.Accessor}}) = (*{{.Accessor}})[:length]
+{{end}}
 	for i := range *{{.Accessor}} {
-		{{if .ReuseMemory}}
+		{{if and .ReuseMemory (not .IsFixed)}}
 		if i == length {
 			continue
 		}
@@ -314,10 +338,14 @@ if length > 0 {
 			(*{{.ComponentType}})(&(*{{.Accessor}})[i]).UnmarshalBuffer(b)
 		{{end}}
 	}
+{{if not .IsFixed}}
 }
+{{end}}
 `, encodeAliasStructSlice: `
+{{if not .IsFixed}}
 b.WriteUint64(uint64(len(*{{.Accessor}})))
-temp := []{{.ComponentType}}(*{{.Accessor}})
+{{end}}
+temp := [{{if .IsFixed}}{{.FixedSize}}{{end}}]{{.ComponentType}}(*{{.Accessor}})
 for i := range temp {
 	{{if .IsPointerComponent}}
 	if temp[i] != nil {
@@ -351,6 +379,7 @@ if {{.Accessor}} != nil {
 	b.WriteBool(false)
 }
 `, decodeAnonymousStructSlice: `
+{{if not .IsFixed}}
 length = int(b.ReadUint64())
 if length > 0 {
 	{{if .ReuseMemory}}
@@ -361,8 +390,9 @@ if length > 0 {
 	}
 	{{end}}
 	{{.Accessor}} = {{.Accessor}}[:length]
+{{end}}
 	for {{.Iterator}} := range {{.Accessor}} {
-		{{if .ReuseMemory}}
+		{{if and .ReuseMemory (not .IsFixed)}}
 		if {{.Iterator}} == length {
 			break
 		}
@@ -383,9 +413,13 @@ if length > 0 {
 		}
 		{{end}}
 	}
+{{if not .IsFixed}}
 }
+{{end}}
 `, encodeAnonymousStructSlice: `
+{{if not .IsFixed}}
 b.WriteUint64(uint64(len({{.Accessor}})))
+{{end}}
 for {{.Iterator}} := range {{.Accessor}} {
 	{{if .IsPointerComponent}}
 	if {{.Accessor}}[{{.Iterator}}] != nil {
@@ -428,7 +462,9 @@ func ({{.Receiver}}) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 if {{.Alias}} != nil {
 	{{if .HasSlice}}
 	var length int = 0
+	_ = length
 	{{end}}
+
 	{{.DecodingCases}}	
 }
 	return b.Err()

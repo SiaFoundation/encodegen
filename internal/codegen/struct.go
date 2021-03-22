@@ -195,6 +195,8 @@ func (s *Struct) generateAnonymousStructCases(field *Field, reuseMemory bool, an
 		Cases              string
 		Iterator           string
 		IsPointerComponent bool
+		IsFixed            bool
+		FixedSize          int
 		ReuseMemory        bool
 	}{
 		field.Accessor,
@@ -203,6 +205,8 @@ func (s *Struct) generateAnonymousStructCases(field *Field, reuseMemory bool, an
 		strings.Join(newDecodingCases, "\n"),
 		field.Iterator,
 		field.IsPointerComponent,
+		field.IsFixed,
+		field.FixedSize,
 		reuseMemory,
 	}
 	decodingCase, err := expandFieldTemplate(decodeTemplateKey, data)
@@ -231,6 +235,8 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo, reuseMemory bo
 		ComponentType      string
 		IsPointerComponent bool
 		ReuseMemory        bool
+		IsFixed            bool
+		FixedSize          int
 	}{
 		Accessor:           s.Alias,
 		Derived:            structInfo.Derived,
@@ -238,6 +244,8 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo, reuseMemory bo
 		ComponentType:      structInfo.ComponentType,
 		IsPointerComponent: structInfo.IsPointerComponentType,
 		ReuseMemory:        reuseMemory,
+		IsFixed:            structInfo.IsFixed,
+		FixedSize:          structInfo.FixedSize,
 	}
 	if structInfo.IsPointerComponentType {
 		newStructInfo.ComponentType = "*" + structInfo.ComponentType
@@ -261,6 +269,13 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo, reuseMemory bo
 		} else {
 			decodeKey = decodeAliasStruct
 			encodeKey = encodeAliasStruct
+		}
+		err := s.generateStructCode(Type{
+			Name:        structInfo.ComponentType,
+			ReuseMemory: reuseMemory,
+		})
+		if err != nil {
+			return nil, nil, err
 		}
 	}
 

@@ -38,6 +38,8 @@ type Message struct {
 		A int
 		B []AliasSubMessage
 	}
-	Anonymous6 []*struct{ A int }
-	End        int
+	Anonymous6            []*struct{ A int }
+	AnonymousFixed        [5]struct{ A int }
+	AnonymousPointerFixed [5]*struct{ A int }
+	End                   int
 }

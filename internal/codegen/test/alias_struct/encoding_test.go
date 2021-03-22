@@ -14,45 +14,66 @@ var testAliasInt AliasInt = AliasInt(9001)
 var doubleAliasSubMessageField = DoubleAliasSubMessage(AliasSubMessage(SubMessage{Id: 888, Description: "bbb"}))
 var testSubMessage = SubMessage{Id: 8888, Description: "AAAAA", Strings: []string{"WASDF", "WAASDSAD"}}
 
+var testUint16 uint16 = 5
+
 var msg = Message{
-	Id:                                1022,
-	Sub:                               SubMessage{Id: 9001, Description: "AAA"},
-	AliasSubMessageField:              AliasSubMessage(SubMessage{Id: 9}),
-	ArrayAliasSubMessageField:         []AliasSubMessage{AliasSubMessage(SubMessage{Id: 8, Description: "aaaa", Strings: []string{"9"}})},
-	DoubleAliasSubMessageField:        doubleAliasSubMessageField,
-	PointerDoubleAliasSubMessageField: &doubleAliasSubMessageField,
-	AliasIntField:                     testAliasInt,
-	PointerAliasIntField:              &testAliasInt,
-	AliasIntArrayField:                AliasIntArray([]int{5, 5, 5, 5, 999995, 5, 5, 5, 9, -5}),
-	AliasIntPointerArrayField:         AliasIntPointerArray([]*int{nil, &testInt, nil, nil, &testInt}),
-	AliasSubMessageArrayField: AliasSubMessageArray([]SubMessage{
-		{Id: 4000, Description: "111", Strings: []string{"999", "888"}},
-		{Id: 8111, Description: "111", Strings: []string{}},
-		{Id: 8111, Description: "111", Strings: nil},
-		{Id: 8111, Strings: nil},
-		{Strings: nil},
+	Id: 1022,
+	// Sub:                               SubMessage{Id: 9001, Description: "AAA"},
+	// AliasSubMessageField:              AliasSubMessage(SubMessage{Id: 9}),
+	// ArrayAliasSubMessageField:         []AliasSubMessage{AliasSubMessage(SubMessage{Id: 8, Description: "aaaa", Strings: []string{"9"}})},
+	// DoubleAliasSubMessageField:        doubleAliasSubMessageField,
+	// PointerDoubleAliasSubMessageField: &doubleAliasSubMessageField,
+	// AliasIntField:                     testAliasInt,
+	// PointerAliasIntField:              &testAliasInt,
+	// AliasIntArrayField:                AliasIntArray([]int{5, 5, 5, 5, 999995, 5, 5, 5, 9, -5}),
+	// AliasIntPointerArrayField:         AliasIntPointerArray([]*int{nil, &testInt, nil, nil, &testInt}),
+	// AliasSubMessageArrayField: AliasSubMessageArray([]SubMessage{
+	// 	{Id: 4000, Description: "111", Strings: []string{"999", "888"}},
+	// 	{Id: 8111, Description: "111", Strings: []string{}},
+	// 	{Id: 8111, Description: "111", Strings: nil},
+	// 	{Id: 8111, Strings: nil},
+	// 	{Strings: nil},
+	// }),
+	// AliasSubMessagePointerArrayField: AliasSubMessagePointerArray([]*SubMessage{
+	// 	&testSubMessage,
+	// 	nil,
+	// 	&testSubMessage,
+	// 	&testSubMessage,
+	// 	&testSubMessage,
+	// 	nil,
+	// }),
+	// ArrayAliasSubMessagePointerArrayField: []AliasSubMessagePointerArray{AliasSubMessagePointerArray([]*SubMessage{
+	// 	nil,
+	// 	nil,
+	// 	nil,
+	// 	&testSubMessage,
+	// 	nil,
+	// 	&testSubMessage,
+	// 	&testSubMessage,
+	// 	&testSubMessage,
+	// 	nil,
+	// }), nil, nil},
+	ByteSlice:                   []byte{1, 123, 123, 123, 132},
+	AliasByteSliceField:         AliasByteSlice(nil),
+	AliasFixedByteArrayField:    AliasFixedByteArray([40]byte{1, 1, 1, 1, 'A', 'B', 'C'}),
+	AliasFixedPointerArrayField: AliasFixedPointerArray([3]*uint16{&testUint16, nil, &testUint16}),
+	AliasFixedSubMessageArrayField: AliasFixedSubMessageArray([3]SubMessage{
+		{
+			Id:          1,
+			Description: "A",
+		},
+		{
+			Id:          2,
+			Description: "B",
+		},
+		{
+			Id:          3,
+			Description: "C",
+		},
 	}),
-	AliasSubMessagePointerArrayField: AliasSubMessagePointerArray([]*SubMessage{
-		&testSubMessage,
-		nil,
-		&testSubMessage,
-		&testSubMessage,
-		&testSubMessage,
-		nil,
+	AliasFixedSubMessagePointerArrayField: AliasFixedSubMessagePointerArray([3]*SubMessage{
+		&testSubMessage, nil, &testSubMessage,
 	}),
-	ArrayAliasSubMessagePointerArrayField: []AliasSubMessagePointerArray{AliasSubMessagePointerArray([]*SubMessage{
-		nil,
-		nil,
-		nil,
-		&testSubMessage,
-		nil,
-		&testSubMessage,
-		&testSubMessage,
-		&testSubMessage,
-		nil,
-	}), nil, nil},
-	ByteSlice:      []byte{1, 123, 123, 123, 132},
-	AliasByteSlice: AliasByteSlice(nil),
 }
 
 func TestMessage(t *testing.T) {
