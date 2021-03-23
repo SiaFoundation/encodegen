@@ -114,9 +114,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Ints = m.Ints[:length]
 			for i := range m.Ints {
-				if i == length {
-					break
-				}
 				m.Ints[i] = int((b.ReadUint64()))
 			}
 		}
@@ -128,9 +125,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Uint8s = m.Uint8s[:length]
 			for i := range m.Uint8s {
-				if i == length {
-					break
-				}
 				m.Uint8s[i] = uint8((b.ReadByte()))
 			}
 		}
@@ -149,9 +143,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.MessagesX = m.MessagesX[:length]
 			for i := range m.MessagesX {
-				if i == length {
-					break
-				}
 				if b.ReadBool() {
 					if m.MessagesX[i] == nil {
 						m.MessagesX[i] = new(SubMessage)
@@ -170,9 +161,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.MessagesY = m.MessagesY[:length]
 			for i := range m.MessagesY {
-				if i == length {
-					break
-				}
 				(*SubMessage)(&m.MessagesY[i]).UnmarshalBuffer(b)
 			}
 		}
@@ -200,9 +188,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Strings = m.Strings[:length]
 			for i := range m.Strings {
-				if i == length {
-					break
-				}
 				m.Strings[i] = string(encodegen.BytesToString(b.ReadPrefixedBytes()))
 			}
 		}
@@ -276,9 +261,6 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Strings = m.Strings[:length]
 			for i := range m.Strings {
-				if i == length {
-					break
-				}
 				m.Strings[i] = string(encodegen.BytesToString(b.ReadPrefixedBytes()))
 			}
 		}

@@ -68,45 +68,7 @@ var supportedPrimitives = map[string]PrimitiveFunctions{
 	"*uint64": Uint64PrimitiveFunctions,
 }
 
-var supportedPrimitivesArray = map[string]PrimitiveFunctions{
-	"[]bool":   BoolPrimitiveFunction,
-	"[]string": StringPrimitiveFunction,
-	"[]byte":   BytePrimitiveFunction,
-	"[]int":    IntPrimitiveFunctions,
-	"[]int8":   IntPrimitiveFunctions,
-	"[]int16":  IntPrimitiveFunctions,
-	"[]int32":  IntPrimitiveFunctions,
-	"[]int64":  IntPrimitiveFunctions,
-	"[]uint":   IntPrimitiveFunctions,
-	"[]uint8":  UInt8PrimitiveFunctions,
-	"[]uint16": IntPrimitiveFunctions,
-	"[]uint32": IntPrimitiveFunctions,
-	"[]uint64": Uint64PrimitiveFunctions,
-
-	"[]*bool":   BoolPrimitiveFunction,
-	"[]*string": StringPrimitiveFunction,
-	"[]*byte":   BytePrimitiveFunction,
-	"[]*int":    IntPrimitiveFunctions,
-	"[]*int8":   IntPrimitiveFunctions,
-	"[]*int16":  IntPrimitiveFunctions,
-	"[]*int32":  IntPrimitiveFunctions,
-	"[]*int64":  IntPrimitiveFunctions,
-	"[]*uint":   IntPrimitiveFunctions,
-	"[]*uint8":  UInt8PrimitiveFunctions,
-	"[]*uint16": IntPrimitiveFunctions,
-	"[]*uint32": IntPrimitiveFunctions,
-	"[]*uint64": Uint64PrimitiveFunctions,
-}
-
 func isPrimitiveString(t string) bool {
 	_, ok := supportedPrimitives[t]
-	return ok
-}
-
-func isPrimitiveArrayString(t string) bool {
-	// e.g. [40]byte -> []byte
-	// var re = regexp.MustCompile(`(?m)\[(.*)\]`)
-	// _, ok := supportedPrimitivesArray[re.ReplaceAllString(t, "[]")]
-	_, ok := supportedPrimitivesArray[fixedToSliceType(t)]
 	return ok
 }

@@ -79,12 +79,6 @@ if length > 0 {
 	b.Read({{.Accessor}}{{if .IsFixed}}[:]{{end}})
 	{{else}}
 	for {{.Iterator}} := range {{.Accessor}} {
-		{{if and .ReuseMemory (not .IsFixed)}}
-		if {{.Iterator}} == length {
-			break
-		}
-		{{end}}
-
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
 			{{if .ReuseMemory}}
@@ -170,11 +164,6 @@ if length > 0 {
 	{{end}}
 	{{end}}
 	for {{.Iterator}} := range {{.Accessor}} {
-		{{if and .ReuseMemory (not .IsFixed)}}
-		if {{.Iterator}} == length {
-			break
-		}
-		{{end}}
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
 			{{if .ReuseMemory}}
@@ -226,24 +215,15 @@ if length > 0 {
 	(*{{.Accessor}}) = (*{{.Accessor}})[:length]
 {{end}}
 	{{if and (eq .ComponentType "byte") (eq .IsPointerComponent false)}}
-
 	{{if .IsFixed}}
 	temp := [{{.FixedSize}}]{{.ComponentType}}(*{{.Accessor}})
 	b.Read(temp[:])
 	*{{.Accessor}} = temp
-
 	{{else}}
 	b.Read(*{{.Accessor}}{{if .IsFixed}}[:]{{end}})
 	{{end}}
-
 	{{else}}
 	for i := range *{{.Accessor}} {
-		{{if and .ReuseMemory (not .IsFixed)}}
-		if i == length {
-			continue
-		}
-		{{end}}
-
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
 			{{if .ReuseMemory}}
@@ -268,14 +248,12 @@ if length > 0 {
 b.WriteUint64(uint64(len(*{{.Accessor}})))
 {{end}}
 {{if and (eq .ComponentType "byte") (eq .IsPointerComponent false)}}
-
 {{if .IsFixed}}
 temp := [{{.FixedSize}}]{{.ComponentType}}(*{{.Accessor}})
 b.Write([]byte(temp{{if .IsFixed}}[:]{{end}}))
 {{else}}
 b.Write([]{{.ComponentType}}(*{{.Accessor}}))
 {{end}}
-
 {{else}}
 temp := [{{if .IsFixed}}{{.FixedSize}}{{end}}]{{.ComponentType}}(*{{.Accessor}})
 for i := range temp {
@@ -317,12 +295,6 @@ if length > 0 {
 	(*{{.Accessor}}) = (*{{.Accessor}})[:length]
 {{end}}
 	for i := range *{{.Accessor}} {
-		{{if and .ReuseMemory (not .IsFixed)}}
-		if i == length {
-			continue
-		}
-		{{end}}
-
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
 			{{if .ReuseMemory}}
@@ -392,11 +364,6 @@ if length > 0 {
 	{{.Accessor}} = {{.Accessor}}[:length]
 {{end}}
 	for {{.Iterator}} := range {{.Accessor}} {
-		{{if and .ReuseMemory (not .IsFixed)}}
-		if {{.Iterator}} == length {
-			break
-		}
-		{{end}}
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
 			{{if .ReuseMemory}}
@@ -406,7 +373,6 @@ if length > 0 {
 			{{if .ReuseMemory}}
 			}
 			{{end}}
-
 		{{end}}
 		{{.Cases}}
 		{{if .IsPointerComponent}}

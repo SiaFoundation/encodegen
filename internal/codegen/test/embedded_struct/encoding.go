@@ -32,8 +32,6 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(m.Anonymous.IntegerField))
 
-		b.WritePrefixedBytes(encodegen.StringToBytes(m.Anonymous.StringField))
-
 		b.WriteUint64(uint64(len(m.Anonymous.IntegerSliceField)))
 		for i1 := range m.Anonymous.IntegerSliceField {
 			b.WriteUint64(uint64(m.Anonymous.IntegerSliceField[i1]))
@@ -152,8 +150,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		m.Anonymous.IntegerField = int(b.ReadUint64())
 
-		m.Anonymous.StringField = string(b.ReadPrefixedBytes())
-
 		length = int(b.ReadUint64())
 		if length > 0 {
 			if len(m.Anonymous.IntegerSliceField) < length {
@@ -161,9 +157,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Anonymous.IntegerSliceField = m.Anonymous.IntegerSliceField[:length]
 			for i1 := range m.Anonymous.IntegerSliceField {
-				if i1 == length {
-					break
-				}
 				m.Anonymous.IntegerSliceField[i1] = int((b.ReadUint64()))
 			}
 		}
@@ -211,9 +204,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Anonymous4 = m.Anonymous4[:length]
 			for i := range m.Anonymous4 {
-				if i == length {
-					break
-				}
 
 				m.Anonymous4[i].A = int(b.ReadUint64())
 
@@ -224,9 +214,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 					}
 					m.Anonymous4[i].IntegerSliceField = m.Anonymous4[i].IntegerSliceField[:length]
 					for i1 := range m.Anonymous4[i].IntegerSliceField {
-						if i1 == length {
-							break
-						}
 						m.Anonymous4[i].IntegerSliceField[i1] = int((b.ReadUint64()))
 					}
 				}
@@ -241,9 +228,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 					}
 					m.Anonymous4[i].Anonymous5 = m.Anonymous4[i].Anonymous5[:length]
 					for i1 := range m.Anonymous4[i].Anonymous5 {
-						if i1 == length {
-							break
-						}
 
 						length = int(b.ReadUint64())
 						if length > 0 {
@@ -252,9 +236,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 							}
 							m.Anonymous4[i].Anonymous5[i1].A = m.Anonymous4[i].Anonymous5[i1].A[:length]
 							for i2 := range m.Anonymous4[i].Anonymous5[i1].A {
-								if i2 == length {
-									break
-								}
 								m.Anonymous4[i].Anonymous5[i1].A[i2] = int((b.ReadUint64()))
 							}
 						}
@@ -284,9 +265,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Anonymous5 = m.Anonymous5[:length]
 			for i := range m.Anonymous5 {
-				if i == length {
-					break
-				}
 
 				m.Anonymous5[i].A = int(b.ReadUint64())
 
@@ -297,9 +275,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 					}
 					m.Anonymous5[i].B = m.Anonymous5[i].B[:length]
 					for i1 := range m.Anonymous5[i].B {
-						if i1 == length {
-							break
-						}
 						(*AliasSubMessage)(&m.Anonymous5[i].B[i1]).UnmarshalBuffer(b)
 					}
 				}
@@ -314,9 +289,6 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Anonymous6 = m.Anonymous6[:length]
 			for i := range m.Anonymous6 {
-				if i == length {
-					break
-				}
 				if b.ReadBool() {
 					if m.Anonymous6[i] == nil {
 						m.Anonymous6[i] = new(struct{ A int })
@@ -357,39 +329,14 @@ func (m *SubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(m.Id))
 
-		b.WritePrefixedBytes(encodegen.StringToBytes(m.Description))
-
-		b.WriteUint64(uint64(len(m.Strings)))
-		for i := range m.Strings {
-			b.WritePrefixedBytes(encodegen.StringToBytes(m.Strings[i]))
-		}
-
 	}
 }
 
 // UnmarshalBuffer implements encodegen's UnmarshalerBuffer
 func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 	if m != nil {
-		var length int = 0
-		_ = length
 
 		m.Id = int(b.ReadUint64())
-
-		m.Description = string(b.ReadPrefixedBytes())
-
-		length = int(b.ReadUint64())
-		if length > 0 {
-			if len(m.Strings) < length {
-				m.Strings = make([]string, length)
-			}
-			m.Strings = m.Strings[:length]
-			for i := range m.Strings {
-				if i == length {
-					break
-				}
-				m.Strings[i] = string(encodegen.BytesToString(b.ReadPrefixedBytes()))
-			}
-		}
 
 	}
 	return b.Err()

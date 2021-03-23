@@ -149,8 +149,6 @@ func NewFieldInfoByIndex(field *ast.Field, index int) *FieldInfo {
 		}
 		result.TypePackage = string(result.TypeName[from:index])
 	}
-	// fmt.Printf("Result: {%+v}\n", result)
-
 	return result
 }
 
@@ -217,13 +215,6 @@ func (s *TypeInfo) AddFields(fields ...*FieldInfo) {
 		return
 	}
 	for _, field := range fields {
-		// if s.coveredTypes[field.Name] {
-		// 	fmt.Printf("(%+v) Already have a %s, continuing\n", s, field.Name)
-		// 	continue
-		// }
-		// fmt.Printf("(%+v) Added a %s\n", s, field.Name)
-		// s.coveredTypes[field.Name] = true
-
 		s.fields = append(s.fields, field)
 		s.indexedField[field.Name] = field
 	}
@@ -376,9 +367,12 @@ func (f *FileInfo) getFieldWithAnonymousChildren(field *ast.Field) *FieldInfo {
 				newField = NewFieldInfo(field)
 			case *ast.StructType:
 				newField = f.anonymousAddStructFields(field, xTypeValue)
+				newField.ComponentType = types.ExprString(xTypeValue)
 			}
 		case *ast.StructType:
 			newField = f.anonymousAddStructFields(field, eltTypeValue)
+			newField.ComponentType = types.ExprString(value.Elt)
+
 		}
 		if value.Len != nil {
 			lenType, ok := value.Len.(*ast.BasicLit)
@@ -413,9 +407,6 @@ func (f *FileInfo) anonymousAddStructFields(structField *ast.Field, structType *
 //Visit visits ast node to extract struct details from the passed file
 func (f *FileInfo) Visit(node ast.Node) ast.Visitor {
 	if node != nil {
-		// fmt.Printf("node %+v\n", node)
-		// spew.Dump(node)
-
 		switch value := node.(type) {
 		case *ast.TypeSpec:
 			typeName := value.Name.Name
@@ -425,6 +416,7 @@ func (f *FileInfo) Visit(node ast.Node) ast.Visitor {
 			switch typeValue := value.Type.(type) {
 			case *ast.ArrayType:
 				typeInfo.IsSlice = true
+
 				if ident, ok := typeValue.Elt.(*ast.Ident); ok {
 					typeInfo.ComponentType = ident.Name
 				} else if startExpr, ok := typeValue.Elt.(*ast.StarExpr); ok {
@@ -433,6 +425,7 @@ func (f *FileInfo) Visit(node ast.Node) ast.Visitor {
 					}
 					typeInfo.IsPointerComponentType = true
 				}
+
 				if typeValue.Len != nil {
 					typeInfo.IsFixed = true
 					lenType, ok := typeValue.Len.(*ast.BasicLit)

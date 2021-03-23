@@ -2,7 +2,6 @@ package codegen
 
 import (
 	"go.sia.tech/encodegen/internal/toolbox"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -70,8 +69,4 @@ func fieldsHaveSlice(fields []*toolbox.FieldInfo) bool {
 		}
 	}
 	return false
-}
-
-func fixedToSliceType(typeString string) string {
-	return regexp.MustCompile(`(?m)\[(.*)\]`).ReplaceAllString(typeString, "[]")
 }

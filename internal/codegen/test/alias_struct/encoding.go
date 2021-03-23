@@ -274,9 +274,6 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Strings = m.Strings[:length]
 			for i := range m.Strings {
-				if i == length {
-					break
-				}
 				m.Strings[i] = string(encodegen.BytesToString(b.ReadPrefixedBytes()))
 			}
 		}

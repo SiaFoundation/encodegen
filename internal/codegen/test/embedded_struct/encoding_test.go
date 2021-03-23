@@ -22,8 +22,8 @@ var anonymous2Struct = struct {
 var msg = Message{
 	Id: 1022,
 	Anonymous: struct {
-		IntegerField      int
-		StringField       string
+		IntegerField int
+		// StringField       string
 		IntegerSliceField []int
 		Sub               SubMessage
 		AliasSub          AliasSubMessage
@@ -35,10 +35,10 @@ var msg = Message{
 		}
 	}{
 		5,
-		"ASDASDADS",
+		// "ASDASDADS",
 		[]int{4, 4, 4, 4, 4, 3, 3, 3, 33, 2},
 		SubMessage{Id: 444},
-		AliasSubMessage(SubMessage{Id: 4441, Description: "ASDDAS"}),
+		AliasSubMessage(SubMessage{Id: 4441}),
 		struct {
 			A             int
 			AnonymousSub2 struct {

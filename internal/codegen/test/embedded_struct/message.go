@@ -5,8 +5,8 @@ type AliasSubMessage SubMessage
 type Message struct {
 	Id        int
 	Anonymous struct {
-		IntegerField      int
-		StringField       string
+		IntegerField int
+		// StringField       string
 		IntegerSliceField []int
 		Sub               SubMessage
 		AliasSub          AliasSubMessage

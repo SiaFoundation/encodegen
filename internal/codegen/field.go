@@ -8,6 +8,7 @@ import (
 
 //Field represents a field.
 type Field struct {
+	Name               string
 	Accessor           string
 	Alias              string //object in function (un)marshaler definition
 	Derived            string // if the type is a type alias the original type goes here
@@ -36,10 +37,10 @@ type Field struct {
 
 //NewField returns a new field
 func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeInfo) (*Field, error) {
-	// fmt.Printf("\nOwner: {%+v}\nField: {%+v}\nFieldType: {%+v}\n", owner, field, fieldType)
-	// fmt.Printf("Owner Alias: %s, Field Name: %s\n", owner.Alias, field.Name)
+	// fmt.Printf("\nField: %+v\n\n", field)
 
 	result := &Field{
+		Name:                 field.Name,
 		RawType:              field.TypeName,
 		IsPointer:            field.IsPointer,
 		Type:                 field.TypeName,
@@ -73,7 +74,7 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 	componentType := field.ComponentType
 	if componentType == "" && (fieldType == nil || fieldType.Derived != "") {
 		componentType = result.Type
-		result.ComponentType = strings.TrimPrefix(strings.TrimPrefix(fixedToSliceType(result.Type), "[]"), "*")
+		result.ComponentType = strings.TrimPrefix(strings.TrimPrefix(result.Type, "[]"), "*")
 	}
 
 	if isPrimitiveString(componentType) {

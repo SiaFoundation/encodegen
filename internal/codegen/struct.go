@@ -112,7 +112,7 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, reuseMemory b
 		case isPrimitiveString(field.Type):
 			decodeTemplateKey = decodeBaseType
 			encodeTemplateKey = encodeBaseType
-		case isPrimitiveArrayString(field.Type):
+		case field.IsSlice && isPrimitiveString(field.ComponentType):
 			decodeTemplateKey = decodeBaseTypeSlice
 			encodeTemplateKey = encodeBaseTypeSlice
 		default:
@@ -227,17 +227,7 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo, reuseMemory bo
 	var err error
 	var decodeKey int
 	var encodeKey int
-	var newStructInfo = struct {
-		Accessor           string
-		Derived            string
-		Name               string
-		PrimitiveFunction  PrimitiveFunctions
-		ComponentType      string
-		IsPointerComponent bool
-		ReuseMemory        bool
-		IsFixed            bool
-		FixedSize          int
-	}{
+	var newStructInfo = Field{
 		Accessor:           s.Alias,
 		Derived:            structInfo.Derived,
 		Name:               structInfo.Name,
@@ -251,7 +241,7 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo, reuseMemory bo
 		newStructInfo.ComponentType = "*" + structInfo.ComponentType
 	}
 
-	if (isPrimitiveString(structInfo.Derived) || isPrimitiveArrayString(structInfo.Derived)) || (isPrimitiveString(structInfo.ComponentType) || isPrimitiveArrayString(structInfo.ComponentType)) {
+	if isPrimitiveString(structInfo.Derived) || isPrimitiveString(structInfo.ComponentType) {
 		if structInfo.IsSlice {
 			newStructInfo.PrimitiveFunction = supportedPrimitives[structInfo.ComponentType]
 			decodeKey = decodeAliasBaseTypeSlice
