@@ -57,6 +57,7 @@ func NewOptionsWithFlagSet(set *flag.FlagSet) *Options {
 				continue
 			}
 
+			// if we get typeName,true then reuse memory for that type, otherwise just default to not reusing memory
 			reuseMemory = false
 			nextArgument := types[i+1]
 			if nextArgument == "true" {

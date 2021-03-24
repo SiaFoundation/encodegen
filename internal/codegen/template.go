@@ -44,10 +44,10 @@ var fieldTemplate = map[int]string{
 		{{if .ReuseMemory}}
 		}
 		{{end}}
-		*{{.Accessor}} = {{.Type}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}()))
+		*{{.Accessor}} = {{.Type}}({{.PrimitiveFunctions.ReadCast}}(b.{{.PrimitiveFunctions.ReadFunction}}()))
 	}
 {{else}}
-	{{.Accessor}} = {{.Type}}(b.{{.PrimitiveFunction.ReadFunction}}())
+	{{.Accessor}} = {{.Type}}(b.{{.PrimitiveFunctions.ReadFunction}}())
 {{end}}
 `,
 	encodeBaseType: `
@@ -55,7 +55,7 @@ var fieldTemplate = map[int]string{
 	if {{.Accessor}} != nil {
 		b.WriteBool(true)
 {{end}}
-	b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}({{if .IsPointer}}*{{end}}{{.Accessor}}))
+	b.{{.PrimitiveFunctions.WriteFunction}}({{.PrimitiveFunctions.WriteCast}}({{if .IsPointer}}*{{end}}{{.Accessor}}))
 {{if .IsPointer}}
 	} else {
 		b.WriteBool(false)
@@ -88,10 +88,10 @@ if length > 0 {
 			{{if .ReuseMemory}}
 			}
 			{{end}}
-			*{{.Accessor}}[{{.Iterator}}] = {{noPointer .ComponentType}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}()))
+			*{{.Accessor}}[{{.Iterator}}] = {{noPointer .ComponentType}}({{.PrimitiveFunctions.ReadCast}}(b.{{.PrimitiveFunctions.ReadFunction}}()))
 		}
 		{{else}}
-			{{.Accessor}}[{{.Iterator}}] = {{.ComponentType}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}()))
+			{{.Accessor}}[{{.Iterator}}] = {{.ComponentType}}({{.PrimitiveFunctions.ReadCast}}(b.{{.PrimitiveFunctions.ReadFunction}}()))
 		{{end}}
 	}
 	{{end}}
@@ -110,9 +110,9 @@ for {{.Iterator}} := range {{.Accessor}} {
 	{{if .IsPointerComponent}}
 	if {{.Accessor}}[{{.Iterator}}] != nil {
 		b.WriteBool(true)
-		b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}(*{{.Accessor}}[{{.Iterator}}]))
+		b.{{.PrimitiveFunctions.WriteFunction}}({{.PrimitiveFunctions.WriteCast}}(*{{.Accessor}}[{{.Iterator}}]))
 	{{else}}
-		b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}({{.Accessor}}[{{.Iterator}}]))
+		b.{{.PrimitiveFunctions.WriteFunction}}({{.PrimitiveFunctions.WriteCast}}({{.Accessor}}[{{.Iterator}}]))
 	{{end}}
 	{{if .IsPointerComponent}}
 	} else {
@@ -157,7 +157,7 @@ if length > 0 {
 	{{if .ReuseMemory}}
 	if len({{.Accessor}}) < length {
 	{{end}}
-	{{.Accessor}} = make({{.RawType}}, length)
+	{{.Accessor}} = make({{.Type}}, length)
 	{{if .ReuseMemory}}
 	}
 	{{.Accessor}} = {{.Accessor}}[:length]
@@ -200,7 +200,7 @@ for {{.Iterator}} := range {{.Accessor}} {
 	{{end}}
 }
 `, decodeAliasBaseType: `
-*{{.Accessor}} = {{.Name}}({{.Derived}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}())))
+*{{.Accessor}} = {{.Name}}({{.Derived}}({{.PrimitiveFunctions.ReadCast}}(b.{{.PrimitiveFunctions.ReadFunction}}())))
 `, decodeAliasBaseTypeSlice: `
 {{if not .IsFixed}}
 length = int(b.ReadUint64())
@@ -223,20 +223,20 @@ if length > 0 {
 	b.Read(*{{.Accessor}}{{if .IsFixed}}[:]{{end}})
 	{{end}}
 	{{else}}
-	for i := range *{{.Accessor}} {
+	for {{.Iterator}} := range *{{.Accessor}} {
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
 			{{if .ReuseMemory}}
-			if (*{{.Accessor}})[i] == nil {
+			if (*{{.Accessor}})[{{.Iterator}}] == nil {
 			{{end}}
-			(*{{.Accessor}})[i] = new({{noPointer .ComponentType}})
+			(*{{.Accessor}})[{{.Iterator}}] = new({{noPointer .ComponentType}})
 			{{if .ReuseMemory}}
 			}
 			{{end}}
-			*(*{{.Accessor}})[i] = {{noPointer .ComponentType}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}()))
+			*(*{{.Accessor}})[{{.Iterator}}] = {{noPointer .ComponentType}}({{.PrimitiveFunctions.ReadCast}}(b.{{.PrimitiveFunctions.ReadFunction}}()))
 		}
 		{{else}}
-			(*{{.Accessor}})[i] = {{.ComponentType}}({{.PrimitiveFunction.ReadCast}}(b.{{.PrimitiveFunction.ReadFunction}}()))
+			(*{{.Accessor}})[{{.Iterator}}] = {{.ComponentType}}({{.PrimitiveFunctions.ReadCast}}(b.{{.PrimitiveFunctions.ReadFunction}}()))
 		{{end}}
 	}
 	{{end}}
@@ -256,13 +256,13 @@ b.Write([]{{.ComponentType}}(*{{.Accessor}}))
 {{end}}
 {{else}}
 temp := [{{if .IsFixed}}{{.FixedSize}}{{end}}]{{.ComponentType}}(*{{.Accessor}})
-for i := range temp {
+for {{.Iterator}} := range temp {
 	{{if .IsPointerComponent}}
-	if temp[i] != nil {
+	if temp[{{.Iterator}}] != nil {
 		b.WriteBool(true)
-		b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}(*temp[i]))
+		b.{{.PrimitiveFunctions.WriteFunction}}({{.PrimitiveFunctions.WriteCast}}(*temp[{{.Iterator}}]))
 	{{else}}
-		b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}(temp[i]))
+		b.{{.PrimitiveFunctions.WriteFunction}}({{.PrimitiveFunctions.WriteCast}}(temp[{{.Iterator}}]))
 	{{end}}
 	{{if .IsPointerComponent}}
 	} else {
@@ -273,7 +273,7 @@ for i := range temp {
 {{end}}
 `,
 	encodeAliasBaseType: `
-b.{{.PrimitiveFunction.WriteFunction}}({{.PrimitiveFunction.WriteCast}}({{.Derived}}(*{{.Accessor}})))
+b.{{.PrimitiveFunctions.WriteFunction}}({{.PrimitiveFunctions.WriteCast}}({{.Derived}}(*{{.Accessor}})))
 `,
 	decodeAliasStruct: `
 (*{{.Derived}})({{.Accessor}}).UnmarshalBuffer(b)
@@ -294,20 +294,20 @@ if length > 0 {
 	{{end}}
 	(*{{.Accessor}}) = (*{{.Accessor}})[:length]
 {{end}}
-	for i := range *{{.Accessor}} {
+	for {{.Iterator}} := range *{{.Accessor}} {
 		{{if .IsPointerComponent}}
 		if b.ReadBool() {
 			{{if .ReuseMemory}}
-			if (*{{.Accessor}})[i] == nil {
+			if (*{{.Accessor}})[{{.Iterator}}] == nil {
 			{{end}}
-			(*{{.Accessor}})[i] = new({{noPointer .ComponentType}})		
+			(*{{.Accessor}})[{{.Iterator}}] = new({{noPointer .ComponentType}})		
 			{{if .ReuseMemory}}
 			}
 			{{end}}
-			({{.ComponentType}})((*{{.Accessor}})[i]).UnmarshalBuffer(b)
+			({{.ComponentType}})((*{{.Accessor}})[{{.Iterator}}]).UnmarshalBuffer(b)
 		}
 		{{else}}
-			(*{{.ComponentType}})(&(*{{.Accessor}})[i]).UnmarshalBuffer(b)
+			(*{{.ComponentType}})(&(*{{.Accessor}})[{{.Iterator}}]).UnmarshalBuffer(b)
 		{{end}}
 	}
 {{if not .IsFixed}}
@@ -318,13 +318,13 @@ if length > 0 {
 b.WriteUint64(uint64(len(*{{.Accessor}})))
 {{end}}
 temp := [{{if .IsFixed}}{{.FixedSize}}{{end}}]{{.ComponentType}}(*{{.Accessor}})
-for i := range temp {
+for {{.Iterator}} := range temp {
 	{{if .IsPointerComponent}}
-	if temp[i] != nil {
+	if temp[{{.Iterator}}] != nil {
 		b.WriteBool(true)
-		({{.ComponentType}})(temp[i]).MarshalBuffer(b)
+		({{.ComponentType}})(temp[{{.Iterator}}]).MarshalBuffer(b)
 	{{else}}
-		(*{{.ComponentType}})(&temp[i]).MarshalBuffer(b)
+		(*{{.ComponentType}})(&temp[{{.Iterator}}]).MarshalBuffer(b)
 	{{end}}
 	{{if .IsPointerComponent}}
 	} else {
@@ -448,7 +448,6 @@ func expandTemplate(namespace string, dictionary map[int]string, key int, data i
 		return "", fmt.Errorf("failed to lookup template for %v.%v", namespace, key)
 	}
 
-	// add iter function to allow us to conveniently repeat code n times
 	temlate, err := template.New(id).Funcs(template.FuncMap{"noPointer": noPointer, "base": filepath.Base}).Parse(textTemplate)
 	if err != nil {
 		return "", fmt.Errorf("fiailed to parse template %v %v, due to %v", namespace, key, err)

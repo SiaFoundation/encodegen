@@ -7,15 +7,18 @@ import (
 	"strings"
 )
 
-func firstLetterToUppercase(text string) string {
-	return strings.ToUpper(string(text[0:1])) + string(text[1:])
-}
-
-func firstLetterToLowercase(text string) string {
-	return strings.ToLower(string(text[0:1])) + string(text[1:])
-}
-
 func extractReceiverAlias(structType string) string {
+	/*
+		Gets the value of the receiver to use in the generated code.
+
+		For example,
+		extractReceiverAlias("Message") -> "m",
+		Thus,
+		func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
+			...
+		}
+	*/
+
 	var result = string(structType[0])
 	for i := len(structType) - 1; i > 0; i-- {
 		aChar := string(structType[i])
@@ -40,7 +43,10 @@ func sortedKeys(m map[string]string) []string {
 }
 
 func getNextIterator(currentIdentifier string) string {
-	// this function allows the generated the code to iterate over slices of structs that have slices within them without having iteration identifiers conflict (i.e., there'd be multiple "range i := r.Fields"s)
+	/*
+		this function allows the generated the code to iterate over slices of anonymous structs that have slices within them without having iteration identifiers conflict (i.e., there'd be multiple "range i := r.Fields"s)
+		"" -> i, "i" -> i1, "i1" -> i2, "i2" -> i3, "in" ->i(n+1) ...
+	*/
 	idSplit := strings.Split(currentIdentifier, "i")
 	if len(idSplit) != 2 {
 		return "i"

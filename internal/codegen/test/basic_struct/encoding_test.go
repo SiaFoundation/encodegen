@@ -89,6 +89,7 @@ func BenchmarkMessageMarshalReflect(b *testing.B) {
 
 func BenchmarkMessageMarshalCodegen(b *testing.B) {
 	buffer := &encodegen.ObjBuffer{}
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		buffer.Reset()
 		msg.MarshalBuffer(buffer)
@@ -99,6 +100,7 @@ func BenchmarkMessageMarshalCodegen(b *testing.B) {
 func BenchmarkMessageUnmarshalReflect(b *testing.B) {
 	data := encoding.Marshal(msg)
 	message := Message{}
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		encoding.Unmarshal(data, &message)
 	}
@@ -109,6 +111,7 @@ func BenchmarkMessageUnmarshalCodegen(b *testing.B) {
 	msg.MarshalBuffer(buffer)
 
 	message := Message{}
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		(*Message)(&message).UnmarshalBuffer(buffer)
 		buffer.Rewind()

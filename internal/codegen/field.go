@@ -6,42 +6,29 @@ import (
 	"strings"
 )
 
-//Field represents a field.
 type Field struct {
-	Name               string
-	Accessor           string
-	Alias              string //object in function (un)marshaler definition
-	Derived            string // if the type is a type alias the original type goes here
-	Type               string
-	RawType            string
-	ComponentType      string
-	RawComponentType   string
-	IsPointerComponent bool
-
-	// DecodingMethod string
-	// EncodingMethod string
-	// PrimitiveWriteCast string
-	PrimitiveFunction PrimitiveFunctions
-
-	IsPointer bool
-	IsSlice   bool
-	IsFixed   bool
-	FixedSize int
-
-	Iterator string
-
-	ReuseMemory bool
-
+	Name                 string // original struct field name
+	Alias                string // object in function (un)marshaler definition
+	Accessor             string // if a struct field is called ABC then this will be something like m.ABC
+	Derived              string // if the type is a type alias the original type goes here
+	Type                 string
+	ComponentType        string // []byte -> byte, []*byte -> byte, []SubMessage -> SubMessage, []*SubMessage -> SubMessage
+	RawComponentType     string // []*byte -> *byte, []byte -> byte
+	IsPointerComponent   bool   // []byte -> false, []SubMessage -> false, []*byte -> true, []*SubMessage -> true
+	PrimitiveFunctions   PrimitiveFunctions
+	IsPointer            bool   // byte -> false, *byte -> true, []*byte -> false
+	IsSlice              bool   // really should be IsArray, byte -> false, []byte -> true, [40]byte -> true
+	IsFixed              bool   // []byte -> false, [40]byte -> true
+	FixedSize            int    // [40]byte -> 40
+	Iterator             string // used to prevent the same iterator from being used in loops in anonymous structs containing arrays
+	ReuseMemory          bool   // copy of the per struct setting
 	AnonymousChildFields []*toolbox.FieldInfo
 }
 
 //NewField returns a new field
 func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeInfo) (*Field, error) {
-	// fmt.Printf("\nField: %+v\n\n", field)
-
 	result := &Field{
 		Name:                 field.Name,
-		RawType:              field.TypeName,
 		IsPointer:            field.IsPointer,
 		Type:                 field.TypeName,
 		Accessor:             owner.Alias + "." + field.Name,
@@ -62,12 +49,12 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 	}
 
 	if field.IsPointer {
-		if strings.HasPrefix(result.RawType, "**") {
+		if strings.Contains(result.Type, "**") {
 			return nil, fmt.Errorf("Only single pointers are supported (error found in %+v)", field)
 		}
 		// toolbox library does not properly label pointers to slices but we dont support these anyways
-		if strings.HasPrefix(result.RawType, "*[]") {
-			return nil, fmt.Errorf("Pointers to slices (%+v) are not supported", field)
+		if strings.Contains(result.Type, "*[]") {
+			return nil, fmt.Errorf("Pointers to slices are not supported (error found in %+v)", field)
 		}
 	}
 
@@ -78,7 +65,7 @@ func NewField(owner *Struct, field *toolbox.FieldInfo, fieldType *toolbox.TypeIn
 	}
 
 	if isPrimitiveString(componentType) {
-		result.PrimitiveFunction = supportedPrimitives[componentType]
+		result.PrimitiveFunctions = supportedPrimitives[componentType]
 	}
 
 	if result.IsPointerComponent {

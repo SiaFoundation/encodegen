@@ -64,7 +64,7 @@ func (g *Generator) Generate() error {
 		return err
 	}
 
-	// add whitespace trim character to the front of all templates https://golang.org/pkg/text/template/
+	// add whitespace trim character to the front of all templates - see https://golang.org/pkg/text/template/
 	var re = regexp.MustCompile(`{{(if|else|end)(.*)}}`)
 	var substitution = "{{- $1 $2}}"
 

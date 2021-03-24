@@ -31,12 +31,14 @@ func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo, reuseMemory bool
 	hasSlice := fieldsHaveSlice(structInfo.Fields())
 	decodingCases, encodingCases, err := s.generateFieldMethods(structInfo.Fields(), reuseMemory, "", "")
 
+	// if we have an alias type
 	if structInfo.IsDerived {
 		decodingCases, encodingCases, err = s.generateAliasCases(structInfo, reuseMemory)
 		if err != nil {
 			return "", err
 		}
 	} else if structInfo.ComponentType != "" {
+		// alias of a slice
 		decodingCases, encodingCases, err = s.generateAliasCases(structInfo, reuseMemory)
 		if err != nil {
 			return "", err
@@ -73,6 +75,10 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, reuseMemory b
 		decodeTemplateKey = -1
 		encodeTemplateKey = -1
 
+		if field == nil {
+			continue
+		}
+
 		// dont modify the original
 		fieldCopy := *field
 		fieldTypeInfo := s.Type(fieldCopy.TypeName)
@@ -85,8 +91,10 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, reuseMemory b
 			return nil, nil, err
 		}
 		field.ReuseMemory = reuseMemory
+
 		field.Iterator = getNextIterator(currentIterator)
 
+		// if we are working with a struct type, the code for it is generated too so we can call its MarshalBuffer/UnmarshalBuffer functions
 		if fieldTypeInfo != nil {
 			err = s.generateStructCode(Type{Name: fieldTypeInfo.Name, ReuseMemory: reuseMemory})
 			if err != nil {
@@ -94,6 +102,7 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, reuseMemory b
 			}
 		}
 
+		// if we have an anonymous struct
 		if len(field.AnonymousChildFields) > 0 {
 			oldPrefix := anonymousPrefix
 			anonymousPrefix = fieldCopy.Name
@@ -123,12 +132,13 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, reuseMemory b
 					break main
 				}
 
+				// if we are working with a struct type (in this case a pointer or slice to it), the code for it is generated too so we can call its MarshalBuffer/UnmarshalBuffer functions
 				err := s.generateStructCode(Type{Name: field.ComponentType, ReuseMemory: reuseMemory})
 				if err != nil {
 					return nil, nil, err
 				}
 
-				if field.ComponentType != "" {
+				if field.IsSlice {
 					decodeTemplateKey = decodeStructSlice
 					encodeTemplateKey = encodeStructSlice
 				} else {
@@ -172,7 +182,7 @@ func (s *Struct) generateAnonymousStructCases(field *Field, reuseMemory bool, an
 	var encodeTemplateKey int = -1
 
 	if field.IsSlice {
-		anonymousPrefix = anonymousPrefix + "[" + field.Iterator + "]"
+		anonymousPrefix = anonymousPrefix + "[" + field.Iterator + "]" // a.b.c -> a.b.c[i]
 		decodeTemplateKey = decodeAnonymousStructSlice
 		encodeTemplateKey = encodeAnonymousStructSlice
 	} else if field.IsPointer {
@@ -236,23 +246,26 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo, reuseMemory bo
 		ReuseMemory:        reuseMemory,
 		IsFixed:            structInfo.IsFixed,
 		FixedSize:          structInfo.FixedSize,
+		Iterator:           "i1",
 	}
 	if structInfo.IsPointerComponentType {
 		newStructInfo.ComponentType = "*" + structInfo.ComponentType
 	}
 
 	if isPrimitiveString(structInfo.Derived) || isPrimitiveString(structInfo.ComponentType) {
+		// alias to primitive type or array of primitive type
 		if structInfo.IsSlice {
-			newStructInfo.PrimitiveFunction = supportedPrimitives[structInfo.ComponentType]
+			newStructInfo.PrimitiveFunctions = supportedPrimitives[structInfo.ComponentType]
 			decodeKey = decodeAliasBaseTypeSlice
 			encodeKey = encodeAliasBaseTypeSlice
 		} else {
-			newStructInfo.PrimitiveFunction = supportedPrimitives[structInfo.Derived]
+			newStructInfo.PrimitiveFunctions = supportedPrimitives[structInfo.Derived]
 
 			decodeKey = decodeAliasBaseType
 			encodeKey = encodeAliasBaseType
 		}
 	} else {
+		// alias of struct or struct slice
 		if structInfo.IsSlice {
 			decodeKey = decodeAliasStructSlice
 			encodeKey = encodeAliasStructSlice

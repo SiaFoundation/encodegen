@@ -21,21 +21,23 @@ type AliasFixedPointerArray [3]*uint16
 type AliasFixedSubMessageArray [3]SubMessage
 type AliasFixedSubMessagePointerArray [3]*SubMessage
 
+type Integer []*int
+
 type Message struct {
-	Id int
-	// Sub                                   SubMessage
-	// AliasSubMessageField                  AliasSubMessage
-	// ArrayAliasSubMessageField             []AliasSubMessage
-	// DoubleAliasSubMessageField            DoubleAliasSubMessage
-	// PointerDoubleAliasSubMessageField     *DoubleAliasSubMessage
-	// AliasIntField                         AliasInt
-	// PointerAliasIntField                  *AliasInt
-	// AliasIntArrayField                    AliasIntArray
-	// AliasIntPointerArrayField             AliasIntPointerArray
-	// AliasSubMessageArrayField             AliasSubMessageArray
-	// AliasSubMessagePointerArrayField      AliasSubMessagePointerArray
-	// ArrayAliasSubMessagePointerArrayField []AliasSubMessagePointerArray
-	// DoubleAliasIntField                   DoubleAliasInt
+	Id                                         int
+	Sub                                        SubMessage
+	AliasSubMessageField                       AliasSubMessage
+	ArrayAliasSubMessageField                  []AliasSubMessage
+	DoubleAliasSubMessageField                 DoubleAliasSubMessage
+	PointerDoubleAliasSubMessageField          *DoubleAliasSubMessage
+	AliasIntField                              AliasInt
+	PointerAliasIntField                       *AliasInt
+	AliasIntArrayField                         AliasIntArray
+	AliasIntPointerArrayField                  AliasIntPointerArray
+	AliasSubMessageArrayField                  AliasSubMessageArray
+	AliasSubMessagePointerArrayField           AliasSubMessagePointerArray
+	ArrayAliasSubMessagePointerArrayField      []AliasSubMessagePointerArray
+	DoubleAliasIntField                        DoubleAliasInt
 	ByteSlice                                  []byte
 	AliasByteSliceField                        AliasByteSlice
 	AliasFixedByteArrayField                   AliasFixedByteArray
@@ -46,4 +48,5 @@ type Message struct {
 	AliasFixedPointerArrayArrayField           [3]AliasFixedPointerArray
 	AliasFixedSubMessageArrayArrayField        [3]AliasFixedSubMessageArray
 	AliasFixedSubMessagePointerArrayArrayField [3]AliasFixedSubMessagePointerArray
+	IntegerField                               Integer
 }

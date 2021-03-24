@@ -63,10 +63,10 @@ func (a *AliasFixedPointerArray) MarshalBuffer(b *encodegen.ObjBuffer) {
 	if a != nil {
 
 		temp := [3]*uint16(*a)
-		for i := range temp {
-			if temp[i] != nil {
+		for i1 := range temp {
+			if temp[i1] != nil {
 				b.WriteBool(true)
-				b.WriteUint64(uint64(*temp[i]))
+				b.WriteUint64(uint64(*temp[i1]))
 			} else {
 				b.WriteBool(false)
 			}
@@ -81,12 +81,12 @@ func (a *AliasFixedPointerArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 		var length int = 0
 		_ = length
 
-		for i := range *a {
+		for i1 := range *a {
 			if b.ReadBool() {
-				if (*a)[i] == nil {
-					(*a)[i] = new(uint16)
+				if (*a)[i1] == nil {
+					(*a)[i1] = new(uint16)
 				}
-				*(*a)[i] = uint16((b.ReadUint64()))
+				*(*a)[i1] = uint16((b.ReadUint64()))
 			}
 		}
 
@@ -99,8 +99,8 @@ func (a *AliasFixedSubMessageArray) MarshalBuffer(b *encodegen.ObjBuffer) {
 	if a != nil {
 
 		temp := [3]SubMessage(*a)
-		for i := range temp {
-			(*SubMessage)(&temp[i]).MarshalBuffer(b)
+		for i1 := range temp {
+			(*SubMessage)(&temp[i1]).MarshalBuffer(b)
 		}
 
 	}
@@ -112,8 +112,8 @@ func (a *AliasFixedSubMessageArray) UnmarshalBuffer(b *encodegen.ObjBuffer) erro
 		var length int = 0
 		_ = length
 
-		for i := range *a {
-			(*SubMessage)(&(*a)[i]).UnmarshalBuffer(b)
+		for i1 := range *a {
+			(*SubMessage)(&(*a)[i1]).UnmarshalBuffer(b)
 		}
 
 	}
@@ -125,10 +125,10 @@ func (a *AliasFixedSubMessagePointerArray) MarshalBuffer(b *encodegen.ObjBuffer)
 	if a != nil {
 
 		temp := [3]*SubMessage(*a)
-		for i := range temp {
-			if temp[i] != nil {
+		for i1 := range temp {
+			if temp[i1] != nil {
 				b.WriteBool(true)
-				(*SubMessage)(temp[i]).MarshalBuffer(b)
+				(*SubMessage)(temp[i1]).MarshalBuffer(b)
 			} else {
 				b.WriteBool(false)
 			}
@@ -143,12 +143,288 @@ func (a *AliasFixedSubMessagePointerArray) UnmarshalBuffer(b *encodegen.ObjBuffe
 		var length int = 0
 		_ = length
 
-		for i := range *a {
+		for i1 := range *a {
 			if b.ReadBool() {
-				if (*a)[i] == nil {
-					(*a)[i] = new(SubMessage)
+				if (*a)[i1] == nil {
+					(*a)[i1] = new(SubMessage)
 				}
-				(*SubMessage)((*a)[i]).UnmarshalBuffer(b)
+				(*SubMessage)((*a)[i1]).UnmarshalBuffer(b)
+			}
+		}
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (i *AliasInt) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if i != nil {
+
+		b.WriteUint64(uint64(int(*i)))
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (i *AliasInt) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if i != nil {
+
+		*i = AliasInt(int((b.ReadUint64())))
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (a *AliasIntArray) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if a != nil {
+
+		b.WriteUint64(uint64(len(*a)))
+		temp := []int(*a)
+		for i1 := range temp {
+			b.WriteUint64(uint64(temp[i1]))
+		}
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (a *AliasIntArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if a != nil {
+		var length int = 0
+		_ = length
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			if len(*a) < length {
+				*a = make([]int, length)
+			}
+			(*a) = (*a)[:length]
+			for i1 := range *a {
+				(*a)[i1] = int((b.ReadUint64()))
+			}
+		}
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (a *AliasIntPointerArray) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if a != nil {
+
+		b.WriteUint64(uint64(len(*a)))
+		temp := []*int(*a)
+		for i1 := range temp {
+			if temp[i1] != nil {
+				b.WriteBool(true)
+				b.WriteUint64(uint64(*temp[i1]))
+			} else {
+				b.WriteBool(false)
+			}
+		}
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (a *AliasIntPointerArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if a != nil {
+		var length int = 0
+		_ = length
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			if len(*a) < length {
+				*a = make([]*int, length)
+			}
+			(*a) = (*a)[:length]
+			for i1 := range *a {
+				if b.ReadBool() {
+					if (*a)[i1] == nil {
+						(*a)[i1] = new(int)
+					}
+					*(*a)[i1] = int((b.ReadUint64()))
+				}
+			}
+		}
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (m *AliasSubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if m != nil {
+
+		(*SubMessage)(m).MarshalBuffer(b)
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (m *AliasSubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if m != nil {
+
+		(*SubMessage)(m).UnmarshalBuffer(b)
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (a *AliasSubMessageArray) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if a != nil {
+
+		b.WriteUint64(uint64(len(*a)))
+		temp := []SubMessage(*a)
+		for i1 := range temp {
+			(*SubMessage)(&temp[i1]).MarshalBuffer(b)
+		}
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (a *AliasSubMessageArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if a != nil {
+		var length int = 0
+		_ = length
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			if len(*a) < length {
+				*a = make([]SubMessage, length)
+			}
+			(*a) = (*a)[:length]
+			for i1 := range *a {
+				(*SubMessage)(&(*a)[i1]).UnmarshalBuffer(b)
+			}
+		}
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (a *AliasSubMessagePointerArray) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if a != nil {
+
+		b.WriteUint64(uint64(len(*a)))
+		temp := []*SubMessage(*a)
+		for i1 := range temp {
+			if temp[i1] != nil {
+				b.WriteBool(true)
+				(*SubMessage)(temp[i1]).MarshalBuffer(b)
+			} else {
+				b.WriteBool(false)
+			}
+		}
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (a *AliasSubMessagePointerArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if a != nil {
+		var length int = 0
+		_ = length
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			if len(*a) < length {
+				*a = make([]*SubMessage, length)
+			}
+			(*a) = (*a)[:length]
+			for i1 := range *a {
+				if b.ReadBool() {
+					if (*a)[i1] == nil {
+						(*a)[i1] = new(SubMessage)
+					}
+					(*SubMessage)((*a)[i1]).UnmarshalBuffer(b)
+				}
+			}
+		}
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (i *DoubleAliasInt) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if i != nil {
+
+		(*AliasInt)(i).MarshalBuffer(b)
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (i *DoubleAliasInt) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if i != nil {
+
+		(*AliasInt)(i).UnmarshalBuffer(b)
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (m *DoubleAliasSubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if m != nil {
+
+		(*AliasSubMessage)(m).MarshalBuffer(b)
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (m *DoubleAliasSubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if m != nil {
+
+		(*AliasSubMessage)(m).UnmarshalBuffer(b)
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (i *Integer) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if i != nil {
+
+		b.WriteUint64(uint64(len(*i)))
+		temp := []*int(*i)
+		for i1 := range temp {
+			if temp[i1] != nil {
+				b.WriteBool(true)
+				b.WriteUint64(uint64(*temp[i1]))
+			} else {
+				b.WriteBool(false)
+			}
+		}
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (i *Integer) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if i != nil {
+		var length int = 0
+		_ = length
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			if len(*i) < length {
+				*i = make([]*int, length)
+			}
+			(*i) = (*i)[:length]
+			for i1 := range *i {
+				if b.ReadBool() {
+					if (*i)[i1] == nil {
+						(*i)[i1] = new(int)
+					}
+					*(*i)[i1] = int((b.ReadUint64()))
+				}
 			}
 		}
 
@@ -161,6 +437,48 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 	if m != nil {
 
 		b.WriteUint64(uint64(m.Id))
+
+		(*SubMessage)(&m.Sub).MarshalBuffer(b)
+
+		(*AliasSubMessage)(&m.AliasSubMessageField).MarshalBuffer(b)
+
+		b.WriteUint64(uint64(len(m.ArrayAliasSubMessageField)))
+		for i := range m.ArrayAliasSubMessageField {
+			m.ArrayAliasSubMessageField[i].MarshalBuffer(b)
+		}
+
+		(*DoubleAliasSubMessage)(&m.DoubleAliasSubMessageField).MarshalBuffer(b)
+
+		if m.PointerDoubleAliasSubMessageField != nil {
+			b.WriteBool(true)
+			(*DoubleAliasSubMessage)(m.PointerDoubleAliasSubMessageField).MarshalBuffer(b)
+		} else {
+			b.WriteBool(false)
+		}
+
+		(*AliasInt)(&m.AliasIntField).MarshalBuffer(b)
+
+		if m.PointerAliasIntField != nil {
+			b.WriteBool(true)
+			(*AliasInt)(m.PointerAliasIntField).MarshalBuffer(b)
+		} else {
+			b.WriteBool(false)
+		}
+
+		(*AliasIntArray)(&m.AliasIntArrayField).MarshalBuffer(b)
+
+		(*AliasIntPointerArray)(&m.AliasIntPointerArrayField).MarshalBuffer(b)
+
+		(*AliasSubMessageArray)(&m.AliasSubMessageArrayField).MarshalBuffer(b)
+
+		(*AliasSubMessagePointerArray)(&m.AliasSubMessagePointerArrayField).MarshalBuffer(b)
+
+		b.WriteUint64(uint64(len(m.ArrayAliasSubMessagePointerArrayField)))
+		for i := range m.ArrayAliasSubMessagePointerArrayField {
+			m.ArrayAliasSubMessagePointerArrayField[i].MarshalBuffer(b)
+		}
+
+		(*DoubleAliasInt)(&m.DoubleAliasIntField).MarshalBuffer(b)
 
 		b.WriteUint64(uint64(len(m.ByteSlice)))
 		b.Write(m.ByteSlice)
@@ -191,6 +509,8 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 			m.AliasFixedSubMessagePointerArrayArrayField[i].MarshalBuffer(b)
 		}
 
+		(*Integer)(&m.IntegerField).MarshalBuffer(b)
+
 	}
 }
 
@@ -201,6 +521,60 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 		_ = length
 
 		m.Id = int(b.ReadUint64())
+
+		(*SubMessage)(&m.Sub).UnmarshalBuffer(b)
+
+		(*AliasSubMessage)(&m.AliasSubMessageField).UnmarshalBuffer(b)
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			if len(m.ArrayAliasSubMessageField) < length {
+				m.ArrayAliasSubMessageField = make([]AliasSubMessage, length)
+			}
+			m.ArrayAliasSubMessageField = m.ArrayAliasSubMessageField[:length]
+			for i := range m.ArrayAliasSubMessageField {
+				(*AliasSubMessage)(&m.ArrayAliasSubMessageField[i]).UnmarshalBuffer(b)
+			}
+		}
+
+		(*DoubleAliasSubMessage)(&m.DoubleAliasSubMessageField).UnmarshalBuffer(b)
+
+		if b.ReadBool() {
+			if m.PointerDoubleAliasSubMessageField == nil {
+				m.PointerDoubleAliasSubMessageField = new(DoubleAliasSubMessage)
+			}
+			(*DoubleAliasSubMessage)(m.PointerDoubleAliasSubMessageField).UnmarshalBuffer(b)
+		}
+
+		(*AliasInt)(&m.AliasIntField).UnmarshalBuffer(b)
+
+		if b.ReadBool() {
+			if m.PointerAliasIntField == nil {
+				m.PointerAliasIntField = new(AliasInt)
+			}
+			(*AliasInt)(m.PointerAliasIntField).UnmarshalBuffer(b)
+		}
+
+		(*AliasIntArray)(&m.AliasIntArrayField).UnmarshalBuffer(b)
+
+		(*AliasIntPointerArray)(&m.AliasIntPointerArrayField).UnmarshalBuffer(b)
+
+		(*AliasSubMessageArray)(&m.AliasSubMessageArrayField).UnmarshalBuffer(b)
+
+		(*AliasSubMessagePointerArray)(&m.AliasSubMessagePointerArrayField).UnmarshalBuffer(b)
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			if len(m.ArrayAliasSubMessagePointerArrayField) < length {
+				m.ArrayAliasSubMessagePointerArrayField = make([]AliasSubMessagePointerArray, length)
+			}
+			m.ArrayAliasSubMessagePointerArrayField = m.ArrayAliasSubMessagePointerArrayField[:length]
+			for i := range m.ArrayAliasSubMessagePointerArrayField {
+				(*AliasSubMessagePointerArray)(&m.ArrayAliasSubMessagePointerArrayField[i]).UnmarshalBuffer(b)
+			}
+		}
+
+		(*DoubleAliasInt)(&m.DoubleAliasIntField).UnmarshalBuffer(b)
 
 		length = int(b.ReadUint64())
 		if length > 0 {
@@ -236,6 +610,8 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 		for i := range m.AliasFixedSubMessagePointerArrayArrayField {
 			(*AliasFixedSubMessagePointerArray)(&m.AliasFixedSubMessagePointerArrayArrayField[i]).UnmarshalBuffer(b)
 		}
+
+		(*Integer)(&m.IntegerField).UnmarshalBuffer(b)
 
 	}
 	return b.Err()
