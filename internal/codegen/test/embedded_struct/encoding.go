@@ -2,7 +2,7 @@
 package embedded_struct
 
 import (
-	"go.sia.tech/encodegen/pkg/encodegen"
+	encodegen "go.sia.tech/encodegen/pkg/encodegen"
 )
 
 // MarshalBuffer implements MarshalerBuffer

@@ -28,6 +28,12 @@ func (b *ObjBuffer) Read(p []byte) {
 	_, b.err = io.ReadFull(&b.buf, p)
 }
 
+func (b *ObjBuffer) ReadString() string {
+	p := make([]byte, b.ReadPrefix(1))
+	b.Read(p)
+	return BytesToString(p)
+}
+
 func (b *ObjBuffer) WriteString(s string) {
 	b.WritePrefix(len(s))
 	b.buf.WriteString(s)

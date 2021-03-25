@@ -2,7 +2,7 @@
 package alias_struct
 
 import (
-	"go.sia.tech/encodegen/pkg/encodegen"
+	encodegen "go.sia.tech/encodegen/pkg/encodegen"
 )
 
 // MarshalBuffer implements MarshalerBuffer
@@ -623,11 +623,11 @@ func (m *SubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(m.Id))
 
-		b.WritePrefixedBytes(encodegen.StringToBytes(m.Description))
+		b.WriteString((m.Description))
 
 		b.WriteUint64(uint64(len(m.Strings)))
 		for i := range m.Strings {
-			b.WritePrefixedBytes(encodegen.StringToBytes(m.Strings[i]))
+			b.WriteString((m.Strings[i]))
 		}
 
 	}
@@ -641,7 +641,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		m.Id = int(b.ReadUint64())
 
-		m.Description = string(b.ReadPrefixedBytes())
+		m.Description = string(b.ReadString())
 
 		length = int(b.ReadUint64())
 		if length > 0 {
@@ -650,7 +650,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Strings = m.Strings[:length]
 			for i := range m.Strings {
-				m.Strings[i] = string(encodegen.BytesToString(b.ReadPrefixedBytes()))
+				m.Strings[i] = string((b.ReadString()))
 			}
 		}
 

@@ -2,12 +2,12 @@ package codegen
 
 const ReadBoolFunction = "ReadBool"
 const ReadIntFunction = "ReadUint64"
-const ReadStringFunction = "ReadPrefixedBytes"
+const ReadStringFunction = "ReadString"
 const ReadByteFunction = "ReadByte"
 
 const WriteBoolFunction = "WriteBool"
 const WriteIntFunction = "WriteUint64"
-const WriteStringFunction = "WritePrefixedBytes"
+const WriteStringFunction = "WriteString"
 const WriteByteFunction = "WriteByte"
 
 type PrimitiveFunctions struct {
@@ -35,7 +35,7 @@ var UInt8PrimitiveFunctions = PrimitiveFunctions{
 }
 
 var BoolPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadBoolFunction, WriteFunction: WriteBoolFunction, WriteCast: ""}
-var StringPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadStringFunction, WriteFunction: WriteStringFunction, WriteCast: "encodegen.StringToBytes", ReadCast: "encodegen.BytesToString"}
+var StringPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadStringFunction, WriteFunction: WriteStringFunction}
 var BytePrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadByteFunction, WriteFunction: WriteByteFunction, WriteCast: ""}
 
 var supportedPrimitives = map[string]PrimitiveFunctions{

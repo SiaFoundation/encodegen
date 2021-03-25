@@ -3,6 +3,7 @@ package basic_struct
 import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/NebulousLabs/encoding"
+	"go.sia.tech/encodegen/internal/codegen/test/importedtype"
 	"go.sia.tech/encodegen/pkg/encodegen"
 	"testing"
 )
@@ -14,6 +15,8 @@ var testSubMessage = SubMessage{
 	Description: "ABC",
 	Strings:     []string{"A", "B", "C", "X", "Y", "Z"},
 }
+var testImported = importedtype.Imported{A: -1, B: []byte{5, 5, 5}}
+
 var msg = Message{
 	Id:     1022,
 	Name:   "name acc",
@@ -62,6 +65,12 @@ var msg = Message{
 		},
 	},
 	FixedPointerSubMessage: [5]*SubMessage{nil, &testSubMessage, &testSubMessage, &testSubMessage, nil},
+	Imported:               testImported,
+	ImportedPointer:        &testImported,
+	ImportedSlice:          []importedtype.Imported{testImported, testImported, testImported},
+	ImportedPointerSlice:   []*importedtype.Imported{&testImported, nil, &testImported},
+	FixedImported:          [3]importedtype.Imported{testImported, testImported, testImported},
+	FixedPointerImported:   [3]*importedtype.Imported{&testImported, &testImported, nil},
 }
 
 func TestMessage(t *testing.T) {

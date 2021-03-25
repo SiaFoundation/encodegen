@@ -13,12 +13,17 @@ import (
 
 const encodingPackage = "go.sia.tech/encodegen/pkg/encodegen"
 
+type Import struct {
+	Path    string
+	Enabled bool
+}
+
 // Generator holds the content to generate the gojay code
 type Generator struct {
 	fileInfo    *toolbox.FileSetInfo
 	types       map[string]string
 	structTypes map[string]string
-	imports     map[string]bool
+	imports     map[string]Import
 	Pkg         string
 	Code        string
 	Imports     string
@@ -31,15 +36,17 @@ func (g *Generator) Type(typeName string) *toolbox.TypeInfo {
 }
 
 // addImport adds an import package to be printed on the generated code
-func (g *Generator) addImport(pkg string) {
-	g.imports[`"`+pkg+`"`] = true
+func (g *Generator) addImport(shortName string, path string, enabled bool) {
+	g.imports[shortName] = Import{
+		Path:    path,
+		Enabled: enabled,
+	}
 }
 
 // we initiate the variables containing the code to be generated
 func (g *Generator) init() {
-	g.imports = map[string]bool{}
+	g.imports = map[string]Import{}
 	g.structTypes = map[string]string{}
-	g.addImport(encodingPackage)
 }
 
 // NewGenerator creates a new generator with the given options
@@ -83,7 +90,13 @@ func (g *Generator) Generate() error {
 		}
 	}
 
-	g.Imports = strings.Join(toolbox.MapKeysToStringSlice(g.imports), "\n")
+	g.addImport("encodegen", `"`+encodingPackage+`"`, true)
+	for _, shortName := range toolbox.MapKeysToStringSlice(g.imports) {
+		if g.imports[shortName].Enabled {
+			g.Imports += fmt.Sprintf("%s %s\n", shortName, g.imports[shortName].Path)
+		}
+	}
+
 	return g.writeCode()
 }
 
@@ -165,9 +178,19 @@ func (g *Generator) readPackageCode(pkgPath string) error {
 		g.fileInfo, err = toolbox.NewFileSetInfo(p)
 	}
 
+	// add all imports to the map.  if they are referenced by a field they will be enabled
+	for _, fileInfo := range g.fileInfo.FilesInfo() {
+		for shortName, importData := range fileInfo.Imports {
+			if shortName != "" {
+				g.addImport(shortName, importData, false)
+			}
+		}
+	}
+
 	// if Pkg flag is set use it
 	if g.options.Pkg != "" {
 		g.Pkg = g.options.Pkg
 	}
 	return err
+
 }

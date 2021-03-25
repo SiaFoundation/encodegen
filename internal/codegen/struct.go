@@ -114,6 +114,9 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, reuseMemory b
 			encodingCases = append(encodingCases, newEncodingCases...)
 			anonymousPrefix = oldPrefix
 			continue
+		} else if strings.Contains(field.Type, "struct{") {
+			// if we have an anonymous struct at this point it means it has no fields and thus there is nothing else for us to do
+			continue
 		}
 
 	main:
@@ -147,15 +150,34 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, reuseMemory b
 				}
 
 				break main
-			} else if field.IsSlice {
-				decodeTemplateKey = decodeStructSlice
-				encodeTemplateKey = encodeStructSlice
+			} else {
+				// imported or alias type
+				if field.IsSlice {
+					decodeTemplateKey = decodeStructSlice
+					encodeTemplateKey = encodeStructSlice
+				} else {
+					decodeTemplateKey = decodeStruct
+					encodeTemplateKey = encodeStruct
+				}
+
+				typeSplit := strings.Split(field.ComponentType, ".")
+				if len(typeSplit) > 1 {
+					importData, ok := s.imports[typeSplit[0]]
+					if ok {
+						importData.Enabled = true
+						s.imports[typeSplit[0]] = importData
+					}
+				}
 				err := s.generateStructCode(Type{Name: field.ComponentType, ReuseMemory: reuseMemory})
 				if err != nil {
 					return nil, nil, err
 				}
-			} else {
-				continue
+
+				err = s.generateStructCode(Type{Name: field.ComponentType, ReuseMemory: reuseMemory})
+				if err != nil {
+					return nil, nil, err
+				}
+
 			}
 		}
 		if decodeTemplateKey != -1 {

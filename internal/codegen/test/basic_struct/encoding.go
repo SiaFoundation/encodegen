@@ -2,7 +2,8 @@
 package basic_struct
 
 import (
-	"go.sia.tech/encodegen/pkg/encodegen"
+	importedtyperename "go.sia.tech/encodegen/internal/codegen/test/importedtype"
+	encodegen "go.sia.tech/encodegen/pkg/encodegen"
 )
 
 // MarshalBuffer implements MarshalerBuffer
@@ -11,7 +12,7 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(m.Id))
 
-		b.WritePrefixedBytes(encodegen.StringToBytes(m.Name))
+		b.WriteString((m.Name))
 
 		b.WriteUint64(uint64(len(m.Ints)))
 		for i := range m.Ints {
@@ -59,7 +60,7 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(len(m.Strings)))
 		for i := range m.Strings {
-			b.WritePrefixedBytes(encodegen.StringToBytes(m.Strings[i]))
+			b.WriteString((m.Strings[i]))
 		}
 
 		b.Write(m.FixedBytes[:])
@@ -94,6 +95,43 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 			}
 		}
 
+		(*importedtyperename.Imported)(&m.Imported).MarshalBuffer(b)
+
+		if m.ImportedPointer != nil {
+			b.WriteBool(true)
+			(*importedtyperename.Imported)(m.ImportedPointer).MarshalBuffer(b)
+		} else {
+			b.WriteBool(false)
+		}
+
+		b.WriteUint64(uint64(len(m.ImportedSlice)))
+		for i := range m.ImportedSlice {
+			m.ImportedSlice[i].MarshalBuffer(b)
+		}
+
+		b.WriteUint64(uint64(len(m.ImportedPointerSlice)))
+		for i := range m.ImportedPointerSlice {
+			if m.ImportedPointerSlice[i] != nil {
+				b.WriteBool(true)
+				m.ImportedPointerSlice[i].MarshalBuffer(b)
+			} else {
+				b.WriteBool(false)
+			}
+		}
+
+		for i := range m.FixedImported {
+			m.FixedImported[i].MarshalBuffer(b)
+		}
+
+		for i := range m.FixedPointerImported {
+			if m.FixedPointerImported[i] != nil {
+				b.WriteBool(true)
+				m.FixedPointerImported[i].MarshalBuffer(b)
+			} else {
+				b.WriteBool(false)
+			}
+		}
+
 	}
 }
 
@@ -105,7 +143,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		m.Id = int(b.ReadUint64())
 
-		m.Name = string(b.ReadPrefixedBytes())
+		m.Name = string(b.ReadString())
 
 		length = int(b.ReadUint64())
 		if length > 0 {
@@ -188,7 +226,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Strings = m.Strings[:length]
 			for i := range m.Strings {
-				m.Strings[i] = string(encodegen.BytesToString(b.ReadPrefixedBytes()))
+				m.Strings[i] = string((b.ReadString()))
 			}
 		}
 
@@ -224,6 +262,55 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 		}
 
+		(*importedtyperename.Imported)(&m.Imported).UnmarshalBuffer(b)
+
+		if b.ReadBool() {
+			if m.ImportedPointer == nil {
+				m.ImportedPointer = new(importedtyperename.Imported)
+			}
+			(*importedtyperename.Imported)(m.ImportedPointer).UnmarshalBuffer(b)
+		}
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			if len(m.ImportedSlice) < length {
+				m.ImportedSlice = make([]importedtyperename.Imported, length)
+			}
+			m.ImportedSlice = m.ImportedSlice[:length]
+			for i := range m.ImportedSlice {
+				(*importedtyperename.Imported)(&m.ImportedSlice[i]).UnmarshalBuffer(b)
+			}
+		}
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			if len(m.ImportedPointerSlice) < length {
+				m.ImportedPointerSlice = make([]*importedtyperename.Imported, length)
+			}
+			m.ImportedPointerSlice = m.ImportedPointerSlice[:length]
+			for i := range m.ImportedPointerSlice {
+				if b.ReadBool() {
+					if m.ImportedPointerSlice[i] == nil {
+						m.ImportedPointerSlice[i] = new(importedtyperename.Imported)
+					}
+					m.ImportedPointerSlice[i].UnmarshalBuffer(b)
+				}
+			}
+		}
+
+		for i := range m.FixedImported {
+			(*importedtyperename.Imported)(&m.FixedImported[i]).UnmarshalBuffer(b)
+		}
+
+		for i := range m.FixedPointerImported {
+			if b.ReadBool() {
+				if m.FixedPointerImported[i] == nil {
+					m.FixedPointerImported[i] = new(importedtyperename.Imported)
+				}
+				m.FixedPointerImported[i].UnmarshalBuffer(b)
+			}
+		}
+
 	}
 	return b.Err()
 }
@@ -234,11 +321,11 @@ func (m *SubMessage) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		b.WriteUint64(uint64(m.Id))
 
-		b.WritePrefixedBytes(encodegen.StringToBytes(m.Description))
+		b.WriteString((m.Description))
 
 		b.WriteUint64(uint64(len(m.Strings)))
 		for i := range m.Strings {
-			b.WritePrefixedBytes(encodegen.StringToBytes(m.Strings[i]))
+			b.WriteString((m.Strings[i]))
 		}
 
 	}
@@ -252,7 +339,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		m.Id = int(b.ReadUint64())
 
-		m.Description = string(b.ReadPrefixedBytes())
+		m.Description = string(b.ReadString())
 
 		length = int(b.ReadUint64())
 		if length > 0 {
@@ -261,7 +348,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 			m.Strings = m.Strings[:length]
 			for i := range m.Strings {
-				m.Strings[i] = string(encodegen.BytesToString(b.ReadPrefixedBytes()))
+				m.Strings[i] = string((b.ReadString()))
 			}
 		}
 

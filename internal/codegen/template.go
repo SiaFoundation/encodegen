@@ -128,26 +128,26 @@ for {{.Iterator}} := range {{.Accessor}} {
 		{{if .ReuseMemory}}
 		if ({{.Accessor}} == nil) {
 		{{end}}
-			{{.Accessor}} = new({{.Type}})
+			{{.Accessor}} = new({{noPointer .Type}})
 		{{if .ReuseMemory}}
 		}
 		{{end}}
-		(*{{.Type}})({{.Accessor}}).UnmarshalBuffer(b)	
+		(*{{noPointer .Type}})({{.Accessor}}).UnmarshalBuffer(b)	
 	}
 {{else}}
-	(*{{.Type}})(&{{.Accessor}}).UnmarshalBuffer(b)
+	(*{{noPointer .Type}})(&{{.Accessor}}).UnmarshalBuffer(b)
 {{end}}
 `,
 	encodeStruct: `
 {{if .IsPointer}}
 	if {{.Accessor}} != nil {
 		b.WriteBool(true)
-		(*{{.Type}})({{.Accessor}}).MarshalBuffer(b)
+		(*{{noPointer .Type}})({{.Accessor}}).MarshalBuffer(b)
 	} else {
 		b.WriteBool(false)
 	}
 {{else}}
-	(*{{.Type}})(&{{.Accessor}}).MarshalBuffer(b)
+	(*{{noPointer .Type}})(&{{.Accessor}}).MarshalBuffer(b)
 {{end}}
 `,
 	decodeStructSlice: `

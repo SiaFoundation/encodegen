@@ -18,6 +18,14 @@ func TestGenerator_Generate(t *testing.T) {
 		hasError    bool
 	}{
 		{
+			description: "basic type to test imports",
+			options: &Options{
+				Source: path.Join(parent, "importedtype"),
+				Types:  []Type{{Name: "Imported", ReuseMemory: true}},
+				Dest:   path.Join(parent, "importedtype", "encoding.go"),
+			},
+		},
+		{
 			description: "basic struct code generation",
 			options: &Options{
 				Source: path.Join(parent, "basic_struct"),
