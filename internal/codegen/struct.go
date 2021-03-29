@@ -28,7 +28,7 @@ func (s *Struct) Generate(reuseMemory bool) (string, error) {
 }
 
 func (s *Struct) generateEncoding(structInfo *toolbox.TypeInfo, reuseMemory bool) (string, error) {
-	hasSlice := fieldsHaveSlice(structInfo.Fields())
+	hasSlice := fieldsHaveSlice(structInfo.Fields()) || structInfo.IsSlice
 	decodingCases, encodingCases, err := s.generateFieldMethods(structInfo.Fields(), reuseMemory, "", "")
 
 	// if we have an alias type
@@ -160,14 +160,8 @@ func (s *Struct) generateFieldMethods(fields []*toolbox.FieldInfo, reuseMemory b
 					encodeTemplateKey = encodeStruct
 				}
 
-				typeSplit := strings.Split(field.ComponentType, ".")
-				if len(typeSplit) > 1 {
-					importData, ok := s.imports[typeSplit[0]]
-					if ok {
-						importData.Enabled = true
-						s.imports[typeSplit[0]] = importData
-					}
-				}
+				s.enableTypeImported(field.ComponentType)
+
 				err := s.generateStructCode(Type{Name: field.ComponentType, ReuseMemory: reuseMemory})
 				if err != nil {
 					return nil, nil, err
@@ -302,6 +296,10 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo, reuseMemory bo
 		if err != nil {
 			return nil, nil, err
 		}
+
+		if structInfo.IsImport {
+			s.enableTypeImported(structInfo.Derived)
+		}
 	}
 
 	decode, err := expandFieldTemplate(decodeKey, newStructInfo)
@@ -313,4 +311,16 @@ func (s *Struct) generateAliasCases(structInfo *toolbox.TypeInfo, reuseMemory bo
 		return nil, nil, err
 	}
 	return []string{decode}, []string{encode}, nil
+}
+
+func (s *Struct) enableTypeImported(selectorName string) {
+	typeSplit := strings.Split(selectorName, ".")
+	if len(typeSplit) > 1 {
+		importData, ok := s.imports[typeSplit[0]]
+		if ok {
+			importData.Enabled = true
+			importData.Types = append(importData.Types, typeSplit[1])
+			s.imports[typeSplit[0]] = importData
+		}
+	}
 }

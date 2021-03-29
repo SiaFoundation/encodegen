@@ -6,6 +6,30 @@ import (
 )
 
 // MarshalBuffer implements MarshalerBuffer
+func (h *Hash) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if h != nil {
+
+		temp := [40]byte(*h)
+		b.Write([]byte(temp[:]))
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (h *Hash) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if h != nil {
+		var length int = 0
+		_ = length
+
+		temp := [40]byte(*h)
+		b.Read(temp[:])
+		*h = temp
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
 func (i *Imported) MarshalBuffer(b *encodegen.ObjBuffer) {
 	if i != nil {
 

@@ -14,8 +14,12 @@ var types = flag.String("t", "", `Types to generate, comma separated.  To enable
 func main() {
 	flag.Parse()
 	options := codegen.NewOptionsWithFlagSet(flag.CommandLine)
-	gen := codegen.NewGenerator(options)
-	if err := gen.Generate(); err != nil {
+	generator, err := codegen.NewGenerator(options)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = generator.Generate()
+	if err != nil {
 		log.Fatal(err)
 	}
 }

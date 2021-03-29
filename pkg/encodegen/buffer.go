@@ -47,19 +47,6 @@ func (b *ObjBuffer) WriteBool(p bool) {
 	}
 }
 
-func (b *ObjBuffer) WriteByte(c byte) {
-	b.buf.WriteByte(c)
-}
-
-func (b *ObjBuffer) ReadByte() byte {
-	c, err := b.buf.ReadByte()
-	if err != nil {
-		b.err = err
-		return 0
-	}
-	return c
-}
-
 func (b *ObjBuffer) ReadBool() bool {
 	if b.err != nil {
 		return false
@@ -74,6 +61,19 @@ func (b *ObjBuffer) ReadBool() bool {
 		return false
 	}
 	return c == 1
+}
+
+func (b *ObjBuffer) WriteByte(c byte) {
+	b.buf.WriteByte(c)
+}
+
+func (b *ObjBuffer) ReadByte() byte {
+	c, err := b.buf.ReadByte()
+	if err != nil {
+		b.err = err
+		return 0
+	}
+	return c
 }
 
 func (b *ObjBuffer) WriteUint64(u uint64) {
@@ -118,22 +118,8 @@ func (b *ObjBuffer) ReadPrefixedBytes() []byte {
 	return p
 }
 
-func (b *ObjBuffer) copyN(r io.Reader, n uint64) error {
-	if b.err != nil {
-		return b.err
-	}
-	b.lr = io.LimitedReader{R: r, N: int64(n)}
-	read, err := b.buf.ReadFrom(&b.lr)
-	if err != nil {
-		b.err = err
-	} else if read != int64(n) {
-		b.err = io.ErrUnexpectedEOF
-	}
-	return b.err
-}
-
-func (b *ObjBuffer) Err() error {
-	return b.err
+func (b *ObjBuffer) Rewind() {
+	b.buf.Seek(-b.buf.Offset())
 }
 
 func (b *ObjBuffer) Reset() {
@@ -141,6 +127,6 @@ func (b *ObjBuffer) Reset() {
 	b.err = nil
 }
 
-func (b *ObjBuffer) Rewind() {
-	b.buf.Seek(-b.buf.Offset())
+func (b *ObjBuffer) Err() error {
+	return b.err
 }

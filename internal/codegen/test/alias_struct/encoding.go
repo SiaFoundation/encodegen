@@ -2,6 +2,7 @@
 package alias_struct
 
 import (
+	importedtype "go.sia.tech/encodegen/internal/codegen/test/importedtype"
 	encodegen "go.sia.tech/encodegen/pkg/encodegen"
 )
 
@@ -53,6 +54,68 @@ func (a *AliasFixedByteArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 		temp := [40]byte(*a)
 		b.Read(temp[:])
 		*a = temp
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (a *AliasFixedImportedTypeArray) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if a != nil {
+
+		temp := [3]importedtype.Imported(*a)
+		for i1 := range temp {
+			(*importedtype.Imported)(&temp[i1]).MarshalBuffer(b)
+		}
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (a *AliasFixedImportedTypeArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if a != nil {
+		var length int = 0
+		_ = length
+
+		for i1 := range *a {
+			(*importedtype.Imported)(&(*a)[i1]).UnmarshalBuffer(b)
+		}
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (a *AliasFixedImportedTypePointerArray) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if a != nil {
+
+		temp := [3]*importedtype.Imported(*a)
+		for i1 := range temp {
+			if temp[i1] != nil {
+				b.WriteBool(true)
+				(*importedtype.Imported)(temp[i1]).MarshalBuffer(b)
+			} else {
+				b.WriteBool(false)
+			}
+		}
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (a *AliasFixedImportedTypePointerArray) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if a != nil {
+		var length int = 0
+		_ = length
+
+		for i1 := range *a {
+			if b.ReadBool() {
+				if (*a)[i1] == nil {
+					(*a)[i1] = new(importedtype.Imported)
+				}
+				(*importedtype.Imported)((*a)[i1]).UnmarshalBuffer(b)
+			}
+		}
 
 	}
 	return b.Err()
@@ -149,6 +212,103 @@ func (a *AliasFixedSubMessagePointerArray) UnmarshalBuffer(b *encodegen.ObjBuffe
 					(*a)[i1] = new(SubMessage)
 				}
 				(*SubMessage)((*a)[i1]).UnmarshalBuffer(b)
+			}
+		}
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (t *AliasImportedType) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if t != nil {
+
+		(*importedtype.Imported)(t).MarshalBuffer(b)
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (t *AliasImportedType) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if t != nil {
+
+		(*importedtype.Imported)(t).UnmarshalBuffer(b)
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (s *AliasImportedTypePointerSlice) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if s != nil {
+
+		b.WriteUint64(uint64(len(*s)))
+		temp := []*importedtype.Imported(*s)
+		for i1 := range temp {
+			if temp[i1] != nil {
+				b.WriteBool(true)
+				(*importedtype.Imported)(temp[i1]).MarshalBuffer(b)
+			} else {
+				b.WriteBool(false)
+			}
+		}
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (s *AliasImportedTypePointerSlice) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if s != nil {
+		var length int = 0
+		_ = length
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			if len(*s) < length {
+				*s = make([]*importedtype.Imported, length)
+			}
+			(*s) = (*s)[:length]
+			for i1 := range *s {
+				if b.ReadBool() {
+					if (*s)[i1] == nil {
+						(*s)[i1] = new(importedtype.Imported)
+					}
+					(*importedtype.Imported)((*s)[i1]).UnmarshalBuffer(b)
+				}
+			}
+		}
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
+func (s *AliasImportedTypeSlice) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if s != nil {
+
+		b.WriteUint64(uint64(len(*s)))
+		temp := []importedtype.Imported(*s)
+		for i1 := range temp {
+			(*importedtype.Imported)(&temp[i1]).MarshalBuffer(b)
+		}
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (s *AliasImportedTypeSlice) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if s != nil {
+		var length int = 0
+		_ = length
+
+		length = int(b.ReadUint64())
+		if length > 0 {
+			if len(*s) < length {
+				*s = make([]importedtype.Imported, length)
+			}
+			(*s) = (*s)[:length]
+			for i1 := range *s {
+				(*importedtype.Imported)(&(*s)[i1]).UnmarshalBuffer(b)
 			}
 		}
 
@@ -351,6 +511,25 @@ func (a *AliasSubMessagePointerArray) UnmarshalBuffer(b *encodegen.ObjBuffer) er
 }
 
 // MarshalBuffer implements MarshalerBuffer
+func (t *DoubleAliasImportedType) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if t != nil {
+
+		(*AliasImportedType)(t).MarshalBuffer(b)
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (t *DoubleAliasImportedType) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if t != nil {
+
+		(*AliasImportedType)(t).UnmarshalBuffer(b)
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
 func (i *DoubleAliasInt) MarshalBuffer(b *encodegen.ObjBuffer) {
 	if i != nil {
 
@@ -511,6 +690,27 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		(*Integer)(&m.IntegerField).MarshalBuffer(b)
 
+		(*AliasImportedType)(&m.AliasImportedTypeField).MarshalBuffer(b)
+
+		(*DoubleAliasImportedType)(&m.DoubleAliasImportedTypeField).MarshalBuffer(b)
+
+		if m.PointerAliasImportedTypeField != nil {
+			b.WriteBool(true)
+			(*AliasImportedType)(m.PointerAliasImportedTypeField).MarshalBuffer(b)
+		} else {
+			b.WriteBool(false)
+		}
+
+		(*AliasImportedTypeSlice)(&m.AliasImportedTypeSliceField).MarshalBuffer(b)
+
+		(*AliasFixedImportedTypeArray)(&m.AliasFixedImportedTypeArrayField).MarshalBuffer(b)
+
+		(*AliasImportedTypePointerSlice)(&m.AliasImportedTypePointerSliceField).MarshalBuffer(b)
+
+		(*AliasFixedImportedTypePointerArray)(&m.AliasFixedImportedTypePointerArrayField).MarshalBuffer(b)
+
+		(*importedtype.Hash)(&m.Hash).MarshalBuffer(b)
+
 	}
 }
 
@@ -612,6 +812,27 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 		}
 
 		(*Integer)(&m.IntegerField).UnmarshalBuffer(b)
+
+		(*AliasImportedType)(&m.AliasImportedTypeField).UnmarshalBuffer(b)
+
+		(*DoubleAliasImportedType)(&m.DoubleAliasImportedTypeField).UnmarshalBuffer(b)
+
+		if b.ReadBool() {
+			if m.PointerAliasImportedTypeField == nil {
+				m.PointerAliasImportedTypeField = new(AliasImportedType)
+			}
+			(*AliasImportedType)(m.PointerAliasImportedTypeField).UnmarshalBuffer(b)
+		}
+
+		(*AliasImportedTypeSlice)(&m.AliasImportedTypeSliceField).UnmarshalBuffer(b)
+
+		(*AliasFixedImportedTypeArray)(&m.AliasFixedImportedTypeArrayField).UnmarshalBuffer(b)
+
+		(*AliasImportedTypePointerSlice)(&m.AliasImportedTypePointerSliceField).UnmarshalBuffer(b)
+
+		(*AliasFixedImportedTypePointerArray)(&m.AliasFixedImportedTypePointerArrayField).UnmarshalBuffer(b)
+
+		(*importedtype.Hash)(&m.Hash).UnmarshalBuffer(b)
 
 	}
 	return b.Err()

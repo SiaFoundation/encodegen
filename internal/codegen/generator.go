@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"go.sia.tech/encodegen/internal/toolbox"
 	"go/format"
+	"go/types"
+	"golang.org/x/tools/go/packages"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,6 +17,7 @@ const encodingPackage = "go.sia.tech/encodegen/pkg/encodegen"
 
 type Import struct {
 	Path    string
+	Types   []string
 	Enabled bool
 }
 
@@ -45,22 +48,23 @@ func (g *Generator) addImport(shortName string, path string, enabled bool) {
 
 // we initiate the variables containing the code to be generated
 func (g *Generator) init() {
-	g.imports = map[string]Import{}
-	g.structTypes = map[string]string{}
+	g.imports = make(map[string]Import)
+	g.types = make(map[string]string)
+	g.structTypes = make(map[string]string)
 }
 
 // NewGenerator creates a new generator with the given options
-func NewGenerator(options *Options) *Generator {
+func NewGenerator(options *Options) (*Generator, error) {
 	var g = &Generator{}
 	// first we validate the flags
 	err := options.Validate()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	g.options = options
 	// we initiate the values on the generator
 	g.init()
-	return g
+	return g, nil
 }
 
 // Generate generates the gojay implementation code
@@ -90,10 +94,39 @@ func (g *Generator) Generate() error {
 		}
 	}
 
-	g.addImport("encodegen", `"`+encodingPackage+`"`, true)
+	g.addImport("encodegen", encodingPackage, true)
 	for _, shortName := range toolbox.MapKeysToStringSlice(g.imports) {
 		if g.imports[shortName].Enabled {
-			g.Imports += fmt.Sprintf("%s %s\n", shortName, g.imports[shortName].Path)
+			pkgs, err := packages.Load(&packages.Config{Mode: packages.LoadTypes}, g.imports[shortName].Path)
+			// invalid package
+			if err != nil {
+				return err
+			}
+			// ensure imported types have marshal/unmarshalbuffer
+			currentImport := g.imports[shortName]
+
+			for _, pkg := range pkgs {
+				for _, importedType := range currentImport.Types {
+					if pkg.Types != nil && pkg.Types.Scope() != nil {
+						lookedUpType := pkg.Types.Scope().Lookup(importedType)
+						if lookedUpType == nil {
+							return fmt.Errorf("We could not find type %+s in scope %+s", importedType, currentImport.Path)
+						}
+
+						marshalBufferObject, _, _ := types.LookupFieldOrMethod(lookedUpType.Type(), true, pkg.Types, "MarshalBuffer")
+						if marshalBufferObject == nil {
+							return fmt.Errorf("This type (%s.%s) does not implement MarshalBuffer", currentImport.Path, importedType)
+						}
+						unmarshalBufferObject, _, _ := types.LookupFieldOrMethod(pkg.Types.Scope().Lookup(importedType).Type(), true, pkg.Types, "UnmarshalBuffer")
+						if unmarshalBufferObject == nil {
+							return fmt.Errorf("This type (%s.%s) does not implement UnmarshalBuffer", currentImport.Path, importedType)
+						}
+					} else {
+						return fmt.Errorf("This type does not exist or its scope cannot be assessed.")
+					}
+				}
+			}
+			g.Imports += fmt.Sprintf(`%s "%s"%s`, shortName, currentImport.Path, "\n")
 		}
 	}
 
@@ -118,7 +151,7 @@ func (g *Generator) writeCode() error {
 		return err
 	}
 
-	// fmt.Printf("UNFORMATTED\n:%s", string(expandedCode))
+	// log.Printf("UNFORMATTED\n:%s", string(expandedCode))
 
 	code, err := format.Source([]byte(expandedCode))
 	if err != nil {

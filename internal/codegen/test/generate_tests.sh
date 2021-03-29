@@ -1,6 +1,5 @@
 #!/bin/sh
 set -eux
-PACKAGE_DIR=$GOPATH/src/go.sia.tech/encodegen
-TEST_DIR=$PACKAGE_DIR/internal/codegen/test
+PACKAGE_DIR=$GOPATH/src/go.sia.tech/encodegen/internal/codegen
 
-go test ../
+go test -test.v $PACKAGE_DIR

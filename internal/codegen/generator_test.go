@@ -3,7 +3,6 @@ package codegen
 import (
 	"github.com/stretchr/testify/assert"
 	"go.sia.tech/encodegen/internal/toolbox"
-	"log"
 	"path"
 	"testing"
 )
@@ -21,7 +20,7 @@ func TestGenerator_Generate(t *testing.T) {
 			description: "basic type to test imports",
 			options: &Options{
 				Source: path.Join(parent, "importedtype"),
-				Types:  []Type{{Name: "Imported", ReuseMemory: true}},
+				Types:  []Type{{Name: "Imported", ReuseMemory: true}, {Name: "Hash", ReuseMemory: true}},
 				Dest:   path.Join(parent, "importedtype", "encoding.go"),
 			},
 		},
@@ -33,7 +32,6 @@ func TestGenerator_Generate(t *testing.T) {
 				Dest:   path.Join(parent, "basic_struct", "encoding.go"),
 			},
 		},
-
 		{
 			description: "struct composed of a bunch of different aliased types",
 			options: &Options{
@@ -53,15 +51,17 @@ func TestGenerator_Generate(t *testing.T) {
 	}
 
 	for _, useCase := range useCases {
-		gen := NewGenerator(useCase.options)
-		err := gen.Generate()
+		generator, err := NewGenerator(useCase.options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = generator.Generate()
 		if useCase.hasError {
 			assert.NotNil(t, err, useCase.description)
 			continue
 		}
 		if !assert.Nil(t, err, useCase.description) {
-			log.Fatal(err)
-			continue
+			t.Fatal(err)
 		}
 	}
 

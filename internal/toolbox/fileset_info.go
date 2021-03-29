@@ -195,6 +195,7 @@ type TypeInfo struct {
 	IsStruct               bool
 	IsInterface            bool
 	IsDerived              bool
+	IsImport               bool
 	ComponentType          string
 	IsPointerComponentType bool
 	Derived                string
@@ -419,11 +420,27 @@ func (f *FileInfo) Visit(node ast.Node) ast.Visitor {
 
 				if ident, ok := typeValue.Elt.(*ast.Ident); ok {
 					typeInfo.ComponentType = ident.Name
-				} else if startExpr, ok := typeValue.Elt.(*ast.StarExpr); ok {
-					if ident, ok := startExpr.X.(*ast.Ident); ok {
+				} else if starExpr, ok := typeValue.Elt.(*ast.StarExpr); ok {
+					if ident, ok := starExpr.X.(*ast.Ident); ok {
 						typeInfo.ComponentType = ident.Name
+					} else if selectorExpr, ok := starExpr.X.(*ast.SelectorExpr); ok {
+						if ident, ok := selectorExpr.X.(*ast.Ident); ok {
+							if selectorExpr.Sel != nil {
+								typeInfo.Derived = ident.Name + "." + selectorExpr.Sel.Name
+								typeInfo.ComponentType = ident.Name + "." + selectorExpr.Sel.Name
+							}
+						}
+						typeInfo.IsDerived = true
 					}
 					typeInfo.IsPointerComponentType = true
+				} else if selectorExpr, ok := typeValue.Elt.(*ast.SelectorExpr); ok {
+					if ident, ok := selectorExpr.X.(*ast.Ident); ok {
+						if selectorExpr.Sel != nil {
+							typeInfo.Derived = ident.Name + "." + selectorExpr.Sel.Name
+							typeInfo.ComponentType = ident.Name + "." + selectorExpr.Sel.Name
+							typeInfo.IsDerived = true
+						}
+					}
 				}
 
 				if typeValue.Len != nil {
@@ -447,6 +464,16 @@ func (f *FileInfo) Visit(node ast.Node) ast.Visitor {
 			case *ast.Ident:
 				typeInfo.Derived = typeValue.Name
 				typeInfo.IsDerived = true
+			case *ast.SelectorExpr:
+				// alias of imported type
+				switch xTypeValue := typeValue.X.(type) {
+				case *ast.Ident:
+					if typeValue.Sel != nil {
+						typeInfo.Derived = xTypeValue.Name + "." + typeValue.Sel.Name
+						typeInfo.IsDerived = true
+					}
+				}
+				typeInfo.IsImport = true
 			}
 			f.currentTypInfo = typeInfo
 			f.types[typeName] = typeInfo
@@ -483,11 +510,11 @@ func (f *FileInfo) Visit(node ast.Node) ast.Visitor {
 			}
 		case *ast.ImportSpec:
 			if value.Name != nil && value.Name.String() != "" {
-				f.Imports[value.Name.String()] = value.Path.Value
+				f.Imports[value.Name.String()] = strings.Replace(value.Path.Value, `"`, "", 2)
 			} else {
 				_, name := path.Split(value.Path.Value)
 				name = strings.Replace(name, `"`, "", 2)
-				f.Imports[name] = value.Path.Value
+				f.Imports[name] = strings.Replace(value.Path.Value, `"`, "", 2)
 			}
 		}
 	}

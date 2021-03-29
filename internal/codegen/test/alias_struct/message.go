@@ -1,6 +1,6 @@
 package alias_struct
 
-// import 	"gitlab.com/NebulousLabs/Sia/crypto"
+import "go.sia.tech/encodegen/internal/codegen/test/importedtype"
 
 type DoubleAliasSubMessage AliasSubMessage
 type AliasSubMessage SubMessage
@@ -22,6 +22,13 @@ type AliasFixedSubMessageArray [3]SubMessage
 type AliasFixedSubMessagePointerArray [3]*SubMessage
 
 type Integer []*int
+
+type AliasImportedType importedtype.Imported
+type DoubleAliasImportedType AliasImportedType
+type AliasImportedTypeSlice []importedtype.Imported
+type AliasFixedImportedTypeArray [3]importedtype.Imported
+type AliasFixedImportedTypePointerArray [3]*importedtype.Imported
+type AliasImportedTypePointerSlice []*importedtype.Imported
 
 type Message struct {
 	Id                                         int
@@ -49,4 +56,12 @@ type Message struct {
 	AliasFixedSubMessageArrayArrayField        [3]AliasFixedSubMessageArray
 	AliasFixedSubMessagePointerArrayArrayField [3]AliasFixedSubMessagePointerArray
 	IntegerField                               Integer
+	AliasImportedTypeField                     AliasImportedType
+	DoubleAliasImportedTypeField               DoubleAliasImportedType
+	PointerAliasImportedTypeField              *AliasImportedType
+	AliasImportedTypeSliceField                AliasImportedTypeSlice
+	AliasFixedImportedTypeArrayField           AliasFixedImportedTypeArray
+	AliasImportedTypePointerSliceField         AliasImportedTypePointerSlice
+	AliasFixedImportedTypePointerArrayField    AliasFixedImportedTypePointerArray
+	Hash                                       importedtype.Hash
 }
