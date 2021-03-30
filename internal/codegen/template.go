@@ -442,22 +442,21 @@ func noPointer(s string) string {
 }
 
 func expandTemplate(namespace string, dictionary map[int]string, key int, data interface{}) (string, error) {
-	var id = fmt.Sprintf("%v_%v", namespace, key)
 	textTemplate, ok := dictionary[key]
 	if !ok {
-		return "", fmt.Errorf("failed to lookup template for %v.%v", namespace, key)
+		return "", fmt.Errorf("Failed to lookup template for %v.%v", namespace, key)
 	}
 
+	id := fmt.Sprintf("%v_%v", namespace, key)
 	temlate, err := template.New(id).Funcs(template.FuncMap{"noPointer": noPointer, "base": filepath.Base}).Parse(textTemplate)
 	if err != nil {
-		return "", fmt.Errorf("fiailed to parse template %v %v, due to %v", namespace, key, err)
+		return "", fmt.Errorf("Failed to parse template %v %v:%v", namespace, key, err)
 	}
 
 	writer := new(bytes.Buffer)
 	err = temlate.Execute(writer, data)
-	// fmt.Printf("Call template with key, %d, data: %+v\n", key, data)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("Failed to execute template %v %v: %+v", namespace, key, err)
 	}
 	return writer.String(), err
 }

@@ -96,20 +96,20 @@ func (g *Generator) Generate() error {
 
 	g.addImport("encodegen", encodingPackage, true)
 	for _, shortName := range toolbox.MapKeysToStringSlice(g.imports) {
-		if g.imports[shortName].Enabled {
+		currentImport := g.imports[shortName]
+		if currentImport.Enabled {
 			pkgs, err := packages.Load(&packages.Config{Mode: packages.LoadTypes}, g.imports[shortName].Path)
 			// invalid package
 			if err != nil {
 				return err
 			}
-			// ensure imported types have marshal/unmarshalbuffer
-			currentImport := g.imports[shortName]
 
+			// ensure imported types have marshal/unmarshalbuffer
 			for _, pkg := range pkgs {
 				for _, importedType := range currentImport.Types {
 					if pkg.Types != nil && pkg.Types.Scope() != nil {
 						lookedUpType := pkg.Types.Scope().Lookup(importedType)
-						if lookedUpType == nil {
+						if lookedUpType == nil || lookedUpType.Type() == nil {
 							return fmt.Errorf("We could not find type %+s in scope %+s", importedType, currentImport.Path)
 						}
 
@@ -117,7 +117,7 @@ func (g *Generator) Generate() error {
 						if marshalBufferObject == nil {
 							return fmt.Errorf("This type (%s.%s) does not implement MarshalBuffer", currentImport.Path, importedType)
 						}
-						unmarshalBufferObject, _, _ := types.LookupFieldOrMethod(pkg.Types.Scope().Lookup(importedType).Type(), true, pkg.Types, "UnmarshalBuffer")
+						unmarshalBufferObject, _, _ := types.LookupFieldOrMethod(lookedUpType.Type(), true, pkg.Types, "UnmarshalBuffer")
 						if unmarshalBufferObject == nil {
 							return fmt.Errorf("This type (%s.%s) does not implement UnmarshalBuffer", currentImport.Path, importedType)
 						}

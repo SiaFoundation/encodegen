@@ -477,12 +477,14 @@ func (f *FileInfo) Visit(node ast.Node) ast.Visitor {
 			}
 			f.currentTypInfo = typeInfo
 			f.types[typeName] = typeInfo
-		case *ast.Field:
-			if len(value.Names) < 1 || f.coveredFields[value] {
-				break
+		case *ast.StructType:
+			for _, field := range value.Fields.List {
+				if field == nil || f.coveredFields[field] {
+					continue
+				}
+				f.currentTypInfo.AddFields(f.getFieldWithAnonymousChildren(field))
+				f.coveredFields[field] = true
 			}
-			f.currentTypInfo.AddFields(f.getFieldWithAnonymousChildren(value))
-			f.coveredFields[value] = true
 		case *ast.FuncDecl:
 			functionInfo := NewFunctionInfo(value, f)
 			functionInfo.FileInfo = f

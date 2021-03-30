@@ -1,67 +1,39 @@
-# Gojay code generator
-This package provides a command line tool to generate gojay's marshaling and unmarshaling interface implementation for custom struct type(s)
+# Encodegen
+This package provides a command line tool to generate [NebulousLabs/encoding](https://gitlab.com/NebulousLabs/encoding) marshaling and unmarshaling interface implementations for custom struct types.
 
 ## Get started
 
-```sh
-go install github.com/francoispqt/gojay/gojay
 ```
+go install go.sia.tech/encodegen
+```
+
+The `encodegen` binary will now appear in your `$GOPATH/bin` directory.
+
+## Generate code
+
+### Basic command
+The basic command is easy to use:
+```
+encodegen -s . -t MyType -o output.go
+```
+
+### Using flags
+
+    * -o: destination file to output generated code
+    * -pkg: the package name of the generated file
+    * -s: Source dir or file (absolute or relative path), omit for stdout
+    * -t: Types to generate, comma separated.  To enable memory reuse, put "true" after a type, e.g. Message,true,SubMessage,SubMessage2.  Memory reuse defaults to false if not specified.
 
 ## Test
 
 ```
 $ cd internal/codegen/test
 $ ./generate_tests.sh
+```
+
+Tests for a basic struct (`basic_struct`), a struct using aliased types (`alias_struct`), and a struct with anonymous structs in it (`embedded_struct`) are now available.
+
+```
 $ cd basic_struct
 $ go test
-
-
-## Generate code
-
-### Basic command
-The basic command is straightforward and easy to use:
-```sh
-cd $GOPATH/src/github.com/user/project
-gojay -s . -p true -t MyType -o output.go
 ```
-If you just want to the output to stdout, omit the -o flag.
-
-### Using flags
-- s Source file/dir path, can be a relative or absolute path
-- t Types to generate with all its dependencies (comma separated)
-- o Output file (relative or absolute path)
-
-Examples:
-
-- Generate `SomeType` type in `/tmp/myproj` go package, write to file `output.go`:
-```sh
-gojay -s /tmp/myproj -t SomeType -o output.go
-```
-
-- Generate type `SomeType` in file `somegofile.go`, with custom tag `gojay`, write to stdout:
-```sh
-gojay -s somegofile.go -a gojay -t SomeType
-```
-
-
-## Generator tags
-You can add tags to your structs to control:
-
-- the JSON key
-- skip a struct field
-- the use of omitempty methods for marshaling
-- timeFormat (java style data format)
-- timeLayout (golang time layout)
-
-
-### Example:
-```go
-type A struct {
-	Str          string     `json:"string"`
-	StrOmitEmpty string     `json:"stringOrEmpty,omitempty"`
-	Skip         string     `json:"-"`
-	StartTime    time.Time  `json:"startDate" timeFormat:"yyyy-MM-dd HH:mm:ss"`
-	EndTime      *time.Time `json:"endDate" timeLayout:"2006-01-02 15:04:05"`
-}
-```
-
