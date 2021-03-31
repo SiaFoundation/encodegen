@@ -75,7 +75,7 @@ if length > 0 {
 	{{end}}
 	{{.Accessor}} = {{.Accessor}}[:length]
 	{{end}}
-	{{if and (eq .ComponentType "byte") (.IsSlice) (eq .IsPointerComponent false) (eq .IsPointer false)}}
+	{{if and (or (eq .ComponentType "byte") (eq .ComponentType "uint8")) (.IsSlice) (eq .IsPointerComponent false) (eq .IsPointer false)}}
 	b.Read({{.Accessor}}{{if .IsFixed}}[:]{{end}})
 	{{else}}
 	for {{.Iterator}} := range {{.Accessor}} {
@@ -103,7 +103,7 @@ if length > 0 {
 {{if not .IsFixed}}
 b.WriteUint64(uint64(len({{.Accessor}})))
 {{end}}
-{{if and (eq .ComponentType "byte") (.IsSlice) (eq .IsPointerComponent false) (eq .IsPointer false)}}
+{{if and (or (eq .ComponentType "byte") (eq .ComponentType "uint8")) (.IsSlice) (eq .IsPointerComponent false) (eq .IsPointer false)}}
 b.Write({{.Accessor}}{{if .IsFixed}}[:]{{end}})
 {{else}}
 for {{.Iterator}} := range {{.Accessor}} {
@@ -214,7 +214,7 @@ if length > 0 {
 	{{end}}
 	(*{{.Accessor}}) = (*{{.Accessor}})[:length]
 {{end}}
-	{{if and (eq .ComponentType "byte") (eq .IsPointerComponent false)}}
+	{{if and (or (eq .ComponentType "byte") (eq .ComponentType "uint8")) (eq .IsPointerComponent false)}}
 	{{if .IsFixed}}
 	temp := [{{.FixedSize}}]{{.ComponentType}}(*{{.Accessor}})
 	b.Read(temp[:])
@@ -247,7 +247,7 @@ if length > 0 {
 {{if not .IsFixed}}
 b.WriteUint64(uint64(len(*{{.Accessor}})))
 {{end}}
-{{if and (eq .ComponentType "byte") (eq .IsPointerComponent false)}}
+{{if and (or (eq .ComponentType "byte") (eq .ComponentType "uint8")) (eq .IsPointerComponent false)}}
 {{if .IsFixed}}
 temp := [{{.FixedSize}}]{{.ComponentType}}(*{{.Accessor}})
 b.Write([]byte(temp{{if .IsFixed}}[:]{{end}}))

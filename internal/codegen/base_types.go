@@ -21,22 +21,26 @@ type PrimitiveFunctions struct {
 var Uint64PrimitiveFunctions = PrimitiveFunctions{
 	ReadFunction:  ReadIntFunction,
 	WriteFunction: WriteIntFunction,
-	WriteCast:     "",
 }
 var IntPrimitiveFunctions = PrimitiveFunctions{
 	ReadFunction:  ReadIntFunction,
 	WriteFunction: WriteIntFunction,
 	WriteCast:     "uint64",
 }
-var UInt8PrimitiveFunctions = PrimitiveFunctions{
+
+/*
+The official implementation treats uint8s very strangely.  Slices of them are treated like []bytes (and rightly so because byte is just an aliased uint8), but individual uint8s are treated like other integer types (Uint64s).
+We replicate this quirk.
+*/
+var UInt8SlicePrimitiveFunctions = PrimitiveFunctions{
 	ReadFunction:  ReadByteFunction,
 	WriteFunction: WriteByteFunction,
 	WriteCast:     "uint8",
 }
 
-var BoolPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadBoolFunction, WriteFunction: WriteBoolFunction, WriteCast: ""}
+var BoolPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadBoolFunction, WriteFunction: WriteBoolFunction}
 var StringPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadStringFunction, WriteFunction: WriteStringFunction}
-var BytePrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadByteFunction, WriteFunction: WriteByteFunction, WriteCast: ""}
+var BytePrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadByteFunction, WriteFunction: WriteByteFunction}
 
 var supportedPrimitives = map[string]PrimitiveFunctions{
 	"bool":   BoolPrimitiveFunction,
@@ -48,24 +52,10 @@ var supportedPrimitives = map[string]PrimitiveFunctions{
 	"int32":  IntPrimitiveFunctions,
 	"int64":  IntPrimitiveFunctions,
 	"uint":   IntPrimitiveFunctions,
-	"uint8":  UInt8PrimitiveFunctions,
+	"uint8":  IntPrimitiveFunctions,
 	"uint16": IntPrimitiveFunctions,
 	"uint32": IntPrimitiveFunctions,
 	"uint64": Uint64PrimitiveFunctions,
-
-	"*bool":   BoolPrimitiveFunction,
-	"*string": StringPrimitiveFunction,
-	"*byte":   BytePrimitiveFunction,
-	"*int":    IntPrimitiveFunctions,
-	"*int8":   IntPrimitiveFunctions,
-	"*int16":  IntPrimitiveFunctions,
-	"*int32":  IntPrimitiveFunctions,
-	"*int64":  IntPrimitiveFunctions,
-	"*uint":   IntPrimitiveFunctions,
-	"*uint8":  UInt8PrimitiveFunctions,
-	"*uint16": IntPrimitiveFunctions,
-	"*uint32": IntPrimitiveFunctions,
-	"*uint64": Uint64PrimitiveFunctions,
 }
 
 func isPrimitiveString(t string) bool {

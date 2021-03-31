@@ -18,17 +18,20 @@ func extractReceiverAlias(structType string) string {
 			...
 		}
 	*/
-
-	var result = string(structType[0])
-	for i := len(structType) - 1; i > 0; i-- {
-		aChar := string(structType[i])
-		lowerChar := strings.ToLower(aChar)
-		if lowerChar != aChar {
-			result = lowerChar
-			break
+	if len(structType) > 0 {
+		result := string(structType[0])
+		for i := len(structType) - 1; i > 0; i-- {
+			aChar := string(structType[i])
+			lowerChar := strings.ToLower(aChar)
+			if lowerChar != aChar {
+				result = lowerChar
+				break
+			}
 		}
+		return strings.ToLower(result)
+	} else {
+		return ""
 	}
-	return strings.ToLower(result)
 }
 
 func sortedKeys(m map[string]string) []string {

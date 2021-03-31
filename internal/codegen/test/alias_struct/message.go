@@ -30,6 +30,9 @@ type AliasFixedImportedTypeArray [3]importedtype.Imported
 type AliasFixedImportedTypePointerArray [3]*importedtype.Imported
 type AliasImportedTypePointerSlice []*importedtype.Imported
 
+type AliasFixedUint8 [3]uint8
+type AliasUint8 uint8
+
 type Message struct {
 	Id                                         int
 	Sub                                        SubMessage
@@ -64,4 +67,7 @@ type Message struct {
 	AliasImportedTypePointerSliceField         AliasImportedTypePointerSlice
 	AliasFixedImportedTypePointerArrayField    AliasFixedImportedTypePointerArray
 	Hash                                       importedtype.Hash
+	AliasUint8Field AliasUint8
+	AliasFixedUint8Field                       AliasFixedUint8
+	PointerAliasFixedUint8Field                *AliasFixedUint8
 }

@@ -12,6 +12,7 @@ type Message struct {
 	Id                     int
 	Name                   string
 	Ints                   []int
+	Uint8                  uint8
 	Uint8s                 []uint8
 	SubMessageX            *SubMessage
 	MessagesX              []*SubMessage

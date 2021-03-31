@@ -178,8 +178,8 @@ func (g *Generator) generateStructCode(structType Type) error {
 		return nil
 	}
 
-	aStruct := NewStruct(typeInfo, g)
-	code, err := aStruct.Generate(structType.ReuseMemory)
+	aStruct := NewStruct(typeInfo, g, structType.ReuseMemory)
+	code, err := aStruct.Generate()
 
 	if err != nil {
 		return err
@@ -220,7 +220,6 @@ func (g *Generator) readPackageCode(pkgPath string) error {
 		}
 	}
 
-	// if Pkg flag is set use it
 	if g.options.Pkg != "" {
 		g.Pkg = g.options.Pkg
 	}

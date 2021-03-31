@@ -17,6 +17,7 @@ var testSubMessage = SubMessage{Id: 8888, Description: "AAAAA", Strings: []strin
 var testImportedType = importedtype.Imported{A: 5}
 var aliasTestImportedType = AliasImportedType(testImportedType)
 var testUint16 uint16 = 5
+var testFixedUint8 = AliasFixedUint8([3]uint8{0, 1, 0})
 
 var msg = Message{
 	Id:                                1022,
@@ -83,6 +84,9 @@ var msg = Message{
 	AliasFixedImportedTypeArrayField:        AliasFixedImportedTypeArray([3]importedtype.Imported{testImportedType, testImportedType, testImportedType}),
 	AliasImportedTypePointerSliceField:      AliasImportedTypePointerSlice([]*importedtype.Imported{nil, &testImportedType, nil, &testImportedType, nil}),
 	AliasFixedImportedTypePointerArrayField: AliasFixedImportedTypePointerArray([3]*importedtype.Imported{&testImportedType, nil, &testImportedType}),
+	AliasUint8Field: AliasUint8(4),
+	AliasFixedUint8Field:                    testFixedUint8,
+	PointerAliasFixedUint8Field:             &testFixedUint8,
 }
 
 func TestMessage(t *testing.T) {

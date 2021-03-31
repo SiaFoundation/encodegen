@@ -19,10 +19,10 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 			b.WriteUint64(uint64(m.Ints[i]))
 		}
 
+		b.WriteUint64(uint64(m.Uint8))
+
 		b.WriteUint64(uint64(len(m.Uint8s)))
-		for i := range m.Uint8s {
-			b.WriteByte(uint8(m.Uint8s[i]))
-		}
+		b.Write(m.Uint8s)
 
 		if m.SubMessageX != nil {
 			b.WriteBool(true)
@@ -78,9 +78,7 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 			}
 		}
 
-		for i := range m.FixedUint8s {
-			b.WriteByte(uint8(m.FixedUint8s[i]))
-		}
+		b.Write(m.FixedUint8s[:])
 
 		for i := range m.FixedSubMessage {
 			m.FixedSubMessage[i].MarshalBuffer(b)
@@ -156,15 +154,15 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 		}
 
+		m.Uint8 = uint8(b.ReadUint64())
+
 		length = int(b.ReadUint64())
 		if length > 0 {
 			if len(m.Uint8s) < length {
 				m.Uint8s = make([]uint8, length)
 			}
 			m.Uint8s = m.Uint8s[:length]
-			for i := range m.Uint8s {
-				m.Uint8s[i] = uint8((b.ReadByte()))
-			}
+			b.Read(m.Uint8s)
 		}
 
 		if b.ReadBool() {
@@ -245,9 +243,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			}
 		}
 
-		for i := range m.FixedUint8s {
-			m.FixedUint8s[i] = uint8((b.ReadByte()))
-		}
+		b.Read(m.FixedUint8s[:])
 
 		for i := range m.FixedSubMessage {
 			(*SubMessage)(&m.FixedSubMessage[i]).UnmarshalBuffer(b)

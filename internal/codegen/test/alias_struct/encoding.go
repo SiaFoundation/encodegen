@@ -220,6 +220,30 @@ func (a *AliasFixedSubMessagePointerArray) UnmarshalBuffer(b *encodegen.ObjBuffe
 }
 
 // MarshalBuffer implements MarshalerBuffer
+func (u *AliasFixedUint8) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if u != nil {
+
+		temp := [3]uint8(*u)
+		b.Write([]byte(temp[:]))
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (u *AliasFixedUint8) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if u != nil {
+		var length int = 0
+		_ = length
+
+		temp := [3]uint8(*u)
+		b.Read(temp[:])
+		*u = temp
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
 func (t *AliasImportedType) MarshalBuffer(b *encodegen.ObjBuffer) {
 	if t != nil {
 
@@ -511,6 +535,25 @@ func (a *AliasSubMessagePointerArray) UnmarshalBuffer(b *encodegen.ObjBuffer) er
 }
 
 // MarshalBuffer implements MarshalerBuffer
+func (u *AliasUint8) MarshalBuffer(b *encodegen.ObjBuffer) {
+	if u != nil {
+
+		b.WriteUint64(uint64(uint8(*u)))
+
+	}
+}
+
+// UnmarshalBuffer implements encodegen's UnmarshalerBuffer
+func (u *AliasUint8) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
+	if u != nil {
+
+		*u = AliasUint8(uint8((b.ReadUint64())))
+
+	}
+	return b.Err()
+}
+
+// MarshalBuffer implements MarshalerBuffer
 func (t *DoubleAliasImportedType) MarshalBuffer(b *encodegen.ObjBuffer) {
 	if t != nil {
 
@@ -711,6 +754,17 @@ func (m *Message) MarshalBuffer(b *encodegen.ObjBuffer) {
 
 		(*importedtype.Hash)(&m.Hash).MarshalBuffer(b)
 
+		(*AliasUint8)(&m.AliasUint8Field).MarshalBuffer(b)
+
+		(*AliasFixedUint8)(&m.AliasFixedUint8Field).MarshalBuffer(b)
+
+		if m.PointerAliasFixedUint8Field != nil {
+			b.WriteBool(true)
+			(*AliasFixedUint8)(m.PointerAliasFixedUint8Field).MarshalBuffer(b)
+		} else {
+			b.WriteBool(false)
+		}
+
 	}
 }
 
@@ -833,6 +887,17 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 		(*AliasFixedImportedTypePointerArray)(&m.AliasFixedImportedTypePointerArrayField).UnmarshalBuffer(b)
 
 		(*importedtype.Hash)(&m.Hash).UnmarshalBuffer(b)
+
+		(*AliasUint8)(&m.AliasUint8Field).UnmarshalBuffer(b)
+
+		(*AliasFixedUint8)(&m.AliasFixedUint8Field).UnmarshalBuffer(b)
+
+		if b.ReadBool() {
+			if m.PointerAliasFixedUint8Field == nil {
+				m.PointerAliasFixedUint8Field = new(AliasFixedUint8)
+			}
+			(*AliasFixedUint8)(m.PointerAliasFixedUint8Field).UnmarshalBuffer(b)
+		}
 
 	}
 	return b.Err()

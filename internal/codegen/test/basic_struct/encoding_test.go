@@ -21,6 +21,7 @@ var msg = Message{
 	Id:     1022,
 	Name:   "name acc",
 	Ints:   []int{1, 2, 5},
+	Uint8:  111,
 	Uint8s: []uint8{1, 2, 5},
 	SubMessageX: &SubMessage{
 		Id:          102,
