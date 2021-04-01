@@ -67,7 +67,7 @@ type Message struct {
 	AliasImportedTypePointerSliceField         AliasImportedTypePointerSlice
 	AliasFixedImportedTypePointerArrayField    AliasFixedImportedTypePointerArray
 	Hash                                       importedtype.Hash
-	AliasUint8Field AliasUint8
+	AliasUint8Field                            AliasUint8
 	AliasFixedUint8Field                       AliasFixedUint8
 	PointerAliasFixedUint8Field                *AliasFixedUint8
 }

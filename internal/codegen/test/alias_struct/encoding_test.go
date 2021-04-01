@@ -84,7 +84,7 @@ var msg = Message{
 	AliasFixedImportedTypeArrayField:        AliasFixedImportedTypeArray([3]importedtype.Imported{testImportedType, testImportedType, testImportedType}),
 	AliasImportedTypePointerSliceField:      AliasImportedTypePointerSlice([]*importedtype.Imported{nil, &testImportedType, nil, &testImportedType, nil}),
 	AliasFixedImportedTypePointerArrayField: AliasFixedImportedTypePointerArray([3]*importedtype.Imported{&testImportedType, nil, &testImportedType}),
-	AliasUint8Field: AliasUint8(4),
+	AliasUint8Field:                         AliasUint8(4),
 	AliasFixedUint8Field:                    testFixedUint8,
 	PointerAliasFixedUint8Field:             &testFixedUint8,
 }
