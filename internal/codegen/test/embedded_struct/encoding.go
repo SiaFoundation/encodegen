@@ -2,7 +2,14 @@
 package embedded_struct
 
 import (
+	encoding "gitlab.com/NebulousLabs/encoding"
 	encodegen "go.sia.tech/encodegen/pkg/encodegen"
+)
+
+var (
+	EncodegenSizeofEmptyAliasSubMessage = len(encoding.Marshal(AliasSubMessage{}))
+	EncodegenSizeofEmptyMessage         = len(encoding.Marshal(Message{}))
+	EncodegenSizeofEmptySubMessage      = len(encoding.Marshal(SubMessage{}))
 )
 
 // MarshalBuffer implements MarshalerBuffer
@@ -150,7 +157,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		m.Anonymous.IntegerField = int(b.ReadUint64())
 
-		length = int(b.ReadUint64())
+		length = int(b.ReadPrefix(8))
 		if length > 0 {
 			if len(m.Anonymous.IntegerSliceField) < length {
 				m.Anonymous.IntegerSliceField = make([]int, length)
@@ -207,7 +214,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 				m.Anonymous4[i].A = int(b.ReadUint64())
 
-				length = int(b.ReadUint64())
+				length = int(b.ReadPrefix(8))
 				if length > 0 {
 					if len(m.Anonymous4[i].IntegerSliceField) < length {
 						m.Anonymous4[i].IntegerSliceField = make([]int, length)
@@ -229,7 +236,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 					m.Anonymous4[i].Anonymous5 = m.Anonymous4[i].Anonymous5[:length]
 					for i1 := range m.Anonymous4[i].Anonymous5 {
 
-						length = int(b.ReadUint64())
+						length = int(b.ReadPrefix(8))
 						if length > 0 {
 							if len(m.Anonymous4[i].Anonymous5[i1].A) < length {
 								m.Anonymous4[i].Anonymous5[i1].A = make([]int, length)

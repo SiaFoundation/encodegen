@@ -2,7 +2,13 @@
 package importedtype
 
 import (
+	encoding "gitlab.com/NebulousLabs/encoding"
 	encodegen "go.sia.tech/encodegen/pkg/encodegen"
+)
+
+var (
+	EncodegenSizeofEmptyHash     = len(encoding.Marshal(Hash{}))
+	EncodegenSizeofEmptyImported = len(encoding.Marshal(Imported{}))
 )
 
 // MarshalBuffer implements MarshalerBuffer
@@ -49,7 +55,7 @@ func (i *Imported) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		i.A = int(b.ReadUint64())
 
-		length = int(b.ReadUint64())
+		length = int(b.ReadPrefix(1))
 		if length > 0 {
 			if len(i.B) < length {
 				i.B = make([]byte, length)

@@ -64,7 +64,7 @@ var fieldTemplate = map[int]string{
 `,
 	decodeBaseTypeSlice: `
 {{if not .IsFixed}}
-length = int(b.ReadUint64())
+length = int(b.ReadPrefix({{.PrimitiveFunctions.ElementSize}}))
 if length > 0 {
 	{{if .ReuseMemory}}
 	if len({{.Accessor}}) < length {
@@ -448,7 +448,7 @@ func expandTemplate(namespace string, dictionary map[int]string, key int, data i
 	}
 
 	id := fmt.Sprintf("%v_%v", namespace, key)
-	temlate, err := template.New(id).Funcs(template.FuncMap{"noPointer": noPointer, "base": filepath.Base}).Parse(textTemplate)
+	temlate, err := template.New(id).Funcs(template.FuncMap{"noPointer": noPointer, "base": filepath.Base, "sizeofPrefix": func() string { return sizeofPrefix }}).Parse(textTemplate)
 	if err != nil {
 		return "", fmt.Errorf("Failed to parse template %v %v:%v", namespace, key, err)
 	}

@@ -8,8 +8,9 @@ import (
 type Struct struct {
 	*toolbox.TypeInfo
 	*Generator
-	Alias       string
-	ReuseMemory bool
+	Alias               string
+	ReuseMemory         bool
+	EmptyMarshalledSize int
 }
 
 func NewStruct(info *toolbox.TypeInfo, generator *Generator, reuseMemory bool) *Struct {

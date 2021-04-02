@@ -2,8 +2,36 @@
 package alias_struct
 
 import (
+	encoding "gitlab.com/NebulousLabs/encoding"
 	importedtype "go.sia.tech/encodegen/internal/codegen/test/importedtype"
 	encodegen "go.sia.tech/encodegen/pkg/encodegen"
+)
+
+var (
+	EncodegenSizeofEmptyAliasByteSlice                     = len(encoding.Marshal(AliasByteSlice{}))
+	EncodegenSizeofEmptyAliasFixedByteArray                = len(encoding.Marshal(AliasFixedByteArray{}))
+	EncodegenSizeofEmptyAliasFixedImportedTypeArray        = len(encoding.Marshal(AliasFixedImportedTypeArray{}))
+	EncodegenSizeofEmptyAliasFixedImportedTypePointerArray = len(encoding.Marshal(AliasFixedImportedTypePointerArray{}))
+	EncodegenSizeofEmptyAliasFixedPointerArray             = len(encoding.Marshal(AliasFixedPointerArray{}))
+	EncodegenSizeofEmptyAliasFixedSubMessageArray          = len(encoding.Marshal(AliasFixedSubMessageArray{}))
+	EncodegenSizeofEmptyAliasFixedSubMessagePointerArray   = len(encoding.Marshal(AliasFixedSubMessagePointerArray{}))
+	EncodegenSizeofEmptyAliasFixedUint8                    = len(encoding.Marshal(AliasFixedUint8{}))
+	EncodegenSizeofEmptyAliasImportedType                  = len(encoding.Marshal(AliasImportedType{}))
+	EncodegenSizeofEmptyAliasImportedTypePointerSlice      = len(encoding.Marshal(AliasImportedTypePointerSlice{}))
+	EncodegenSizeofEmptyAliasImportedTypeSlice             = len(encoding.Marshal(AliasImportedTypeSlice{}))
+	EncodegenSizeofEmptyAliasInt                           = len(encoding.Marshal(AliasInt(0)))
+	EncodegenSizeofEmptyAliasIntArray                      = len(encoding.Marshal(AliasIntArray{}))
+	EncodegenSizeofEmptyAliasIntPointerArray               = len(encoding.Marshal(AliasIntPointerArray{}))
+	EncodegenSizeofEmptyAliasSubMessage                    = len(encoding.Marshal(AliasSubMessage{}))
+	EncodegenSizeofEmptyAliasSubMessageArray               = len(encoding.Marshal(AliasSubMessageArray{}))
+	EncodegenSizeofEmptyAliasSubMessagePointerArray        = len(encoding.Marshal(AliasSubMessagePointerArray{}))
+	EncodegenSizeofEmptyAliasUint8                         = len(encoding.Marshal(AliasUint8(0)))
+	EncodegenSizeofEmptyDoubleAliasImportedType            = len(encoding.Marshal(DoubleAliasImportedType{}))
+	EncodegenSizeofEmptyDoubleAliasInt                     = len(encoding.Marshal(DoubleAliasInt(0)))
+	EncodegenSizeofEmptyDoubleAliasSubMessage              = len(encoding.Marshal(DoubleAliasSubMessage{}))
+	EncodegenSizeofEmptyInteger                            = len(encoding.Marshal(Integer{}))
+	EncodegenSizeofEmptyMessage                            = len(encoding.Marshal(Message{}))
+	EncodegenSizeofEmptySubMessage                         = len(encoding.Marshal(SubMessage{}))
 )
 
 // MarshalBuffer implements MarshalerBuffer
@@ -830,7 +858,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		(*DoubleAliasInt)(&m.DoubleAliasIntField).UnmarshalBuffer(b)
 
-		length = int(b.ReadUint64())
+		length = int(b.ReadPrefix(1))
 		if length > 0 {
 			if len(m.ByteSlice) < length {
 				m.ByteSlice = make([]byte, length)
@@ -929,7 +957,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		m.Description = string(b.ReadString())
 
-		length = int(b.ReadUint64())
+		length = int(b.ReadPrefix(1))
 		if length > 0 {
 			if len(m.Strings) < length {
 				m.Strings = make([]string, length)

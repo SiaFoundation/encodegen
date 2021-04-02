@@ -79,3 +79,16 @@ func fieldsHaveSlice(fields []*toolbox.FieldInfo) bool {
 	}
 	return false
 }
+
+func isPrimitiveDerived(fileInfo *toolbox.FileSetInfo, currentType *toolbox.TypeInfo) (PrimitiveFunctions, bool) {
+	if isPrimitiveString(currentType.Derived) {
+		return supportedPrimitives[currentType.Derived], true
+	} else {
+		derivedType := fileInfo.Type(currentType.Derived)
+		if derivedType == nil {
+			return PrimitiveFunctions{}, false
+		}
+		return isPrimitiveDerived(fileInfo, derivedType)
+	}
+	return PrimitiveFunctions{}, false
+}

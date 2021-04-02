@@ -2,8 +2,14 @@
 package basic_struct
 
 import (
+	encoding "gitlab.com/NebulousLabs/encoding"
 	importedtyperename "go.sia.tech/encodegen/internal/codegen/test/importedtype"
 	encodegen "go.sia.tech/encodegen/pkg/encodegen"
+)
+
+var (
+	EncodegenSizeofEmptyMessage    = len(encoding.Marshal(Message{}))
+	EncodegenSizeofEmptySubMessage = len(encoding.Marshal(SubMessage{}))
 )
 
 // MarshalBuffer implements MarshalerBuffer
@@ -143,7 +149,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		m.Name = string(b.ReadString())
 
-		length = int(b.ReadUint64())
+		length = int(b.ReadPrefix(8))
 		if length > 0 {
 			if len(m.Ints) < length {
 				m.Ints = make([]int, length)
@@ -156,7 +162,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		m.Uint8 = uint8(b.ReadUint64())
 
-		length = int(b.ReadUint64())
+		length = int(b.ReadPrefix(1))
 		if length > 0 {
 			if len(m.Uint8s) < length {
 				m.Uint8s = make([]uint8, length)
@@ -208,7 +214,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			*m.IsTrue = bool((b.ReadBool()))
 		}
 
-		length = int(b.ReadUint64())
+		length = int(b.ReadPrefix(1))
 		if length > 0 {
 			if len(m.Payload) < length {
 				m.Payload = make([]byte, length)
@@ -217,7 +223,7 @@ func (m *Message) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 			b.Read(m.Payload)
 		}
 
-		length = int(b.ReadUint64())
+		length = int(b.ReadPrefix(1))
 		if length > 0 {
 			if len(m.Strings) < length {
 				m.Strings = make([]string, length)
@@ -337,7 +343,7 @@ func (m *SubMessage) UnmarshalBuffer(b *encodegen.ObjBuffer) error {
 
 		m.Description = string(b.ReadString())
 
-		length = int(b.ReadUint64())
+		length = int(b.ReadPrefix(1))
 		if length > 0 {
 			if len(m.Strings) < length {
 				m.Strings = make([]string, length)

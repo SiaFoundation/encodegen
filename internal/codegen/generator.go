@@ -14,6 +14,8 @@ import (
 )
 
 const encodingPackage = "go.sia.tech/encodegen/pkg/encodegen"
+const nebulousEncodingPackage = "gitlab.com/NebulousLabs/encoding"
+const sizeofPrefix = "EncodegenSizeofEmpty"
 
 type Import struct {
 	Path    string
@@ -95,6 +97,7 @@ func (g *Generator) Generate() error {
 	}
 
 	g.addImport("encodegen", encodingPackage, true)
+	g.addImport("encoding", nebulousEncodingPackage, true)
 	for _, shortName := range toolbox.MapKeysToStringSlice(g.imports) {
 		currentImport := g.imports[shortName]
 		if currentImport.Enabled {
@@ -135,9 +138,21 @@ func (g *Generator) Generate() error {
 
 func (g *Generator) writeCode() error {
 	var generatedCode = []string{}
+	var structInit string
 
-	generatedCode = append(generatedCode, "")
-	generatedCode = append(generatedCode, "")
+	generatedCode = append(generatedCode, "var (")
+	for _, key := range sortedKeys(g.structTypes) {
+		keyType := g.Type(key)
+		primitiveType, primitiveDerived := isPrimitiveDerived(g.fileInfo, keyType)
+		if primitiveDerived {
+			structInit = "(" + primitiveType.ResetString + ")"
+		} else {
+			structInit = "{}"
+		}
+		generatedCode = append(generatedCode, fmt.Sprintf("%s%s = len(encoding.Marshal(%s%s))", sizeofPrefix, key, key, structInit))
+	}
+	generatedCode = append(generatedCode, ")")
+
 	for _, key := range sortedKeys(g.structTypes) {
 		code := g.structTypes[key]
 		generatedCode = append(generatedCode, code)
@@ -145,7 +160,6 @@ func (g *Generator) writeCode() error {
 
 	g.Code = strings.Join(generatedCode, "\n")
 
-	// g.Code = strings.Replace(g.Code, "\n\n", "\n", -1)
 	expandedCode, err := expandBlockTemplate(fileCode, g)
 	if err != nil {
 		return err
