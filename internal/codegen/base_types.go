@@ -1,5 +1,9 @@
 package codegen
 
+import (
+	"unsafe"
+)
+
 const ReadBoolFunction = "ReadBool"
 const ReadIntFunction = "ReadUint64"
 const ReadStringFunction = "ReadString"
@@ -9,6 +13,10 @@ const WriteBoolFunction = "WriteBool"
 const WriteIntFunction = "WriteUint64"
 const WriteStringFunction = "WriteString"
 const WriteByteFunction = "WriteByte"
+
+const sizeofUint64  = int(unsafe.Sizeof(uint64(0)))
+const sizeofByte  = int(unsafe.Sizeof(byte(0)))
+const sizeofBool  = int(unsafe.Sizeof(bool(false)))
 
 type PrimitiveFunctions struct {
 	ReadFunction  string
@@ -24,14 +32,14 @@ var Uint64PrimitiveFunctions = PrimitiveFunctions{
 	ReadFunction:  ReadIntFunction,
 	WriteFunction: WriteIntFunction,
 	ResetString:   "0",
-	ElementSize:   8,
+	ElementSize:   sizeofUint64,
 }
 var IntPrimitiveFunctions = PrimitiveFunctions{
 	ReadFunction:  ReadIntFunction,
 	WriteFunction: WriteIntFunction,
 	WriteCast:     "uint64",
 	ResetString:   "0",
-	ElementSize:   8,
+	ElementSize:   sizeofUint64,
 }
 
 /*
@@ -43,12 +51,12 @@ var UInt8SlicePrimitiveFunctions = PrimitiveFunctions{
 	WriteFunction: WriteByteFunction,
 	WriteCast:     "uint8",
 	ResetString:   "0",
-	ElementSize:   1,
+	ElementSize:   sizeofByte,
 }
 
-var BoolPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadBoolFunction, WriteFunction: WriteBoolFunction, ResetString: "false", ElementSize: 1}
-var StringPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadStringFunction, WriteFunction: WriteStringFunction, ResetString: `""`, ElementSize: 1}
-var BytePrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadByteFunction, WriteFunction: WriteByteFunction, ResetString: "0", ElementSize: 1}
+var BoolPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadBoolFunction, WriteFunction: WriteBoolFunction, ResetString: "false", ElementSize: sizeofBool}
+var StringPrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadStringFunction, WriteFunction: WriteStringFunction, ResetString: `""`, ElementSize: sizeofByte}
+var BytePrimitiveFunction = PrimitiveFunctions{ReadFunction: ReadByteFunction, WriteFunction: WriteByteFunction, ResetString: "0", ElementSize: sizeofByte}
 
 var supportedPrimitives = map[string]PrimitiveFunctions{
 	"bool":   BoolPrimitiveFunction,
