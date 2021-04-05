@@ -2,24 +2,26 @@ package main
 
 import (
 	"flag"
-	"go.sia.tech/encodegen/internal/codegen"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"strings"
 )
 
-var pkg = flag.String("pkg", "", "the package name of the generated file")
-var dst = flag.String("o", "", "destination file to output generated code")
-var src = flag.String("s", "", "Source dir or file (absolute or relative path), omit for stdout")
-var types = flag.String("t", "", `Types to generate, comma separated.  To enable memory reuse, put "true" after a type, e.g. Message,true,SubMessage,SubMessage2.  Memory reuse defaults to false if not specified.`)
-
 func main() {
+	pkg := flag.String("pkg", "", "name of target package")
+	dst := flag.String("o", "", "destination of generated code (optional; omit for stdout)")
+	typs := flag.String("t", "", "types to generate, comma separated")
 	flag.Parse()
-	options := codegen.NewOptionsWithFlagSet(flag.CommandLine)
-	generator, err := codegen.NewGenerator(options)
+	code, err := Generate(*pkg, strings.Split(*typs, ",")...)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = generator.Generate()
-	if err != nil {
+	if *dst == "" {
+		fmt.Println(code)
+		return
+	}
+	if err := ioutil.WriteFile(*dst, []byte(code), 0644); err != nil {
 		log.Fatal(err)
 	}
 }
