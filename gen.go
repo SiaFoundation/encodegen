@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"go.sia.tech/encodegen/internal/test_imported"
+	"go.sia.tech/encodegen/test"
 	"go/format"
 	"go/types"
 	"golang.org/x/tools/go/packages"
@@ -265,11 +265,11 @@ func sizeof(t types.Type) int {
 // for testing; delete later
 
 type Foo struct {
-	A test_imported.Imported
-	B test_imported.Hash
-	C []test_imported.Imported
-	D [][]test_imported.Imported
-	E [40]test_imported.Imported
+	A test.Imported
+	B test.Hash
+	C []test.Imported
+	D [][]test.Imported
+	E [40]test.Imported
 	X int
 	Y uint64
 	Z [][][]uint64

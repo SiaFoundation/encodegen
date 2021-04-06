@@ -1,4 +1,4 @@
-package test_imported
+package test
 
 type Imported struct {
 	A int
