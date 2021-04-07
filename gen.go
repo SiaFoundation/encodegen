@@ -63,6 +63,8 @@ import (%s)
 %s
 `, g.pkg.Name, strings.Join(g.imports, ";"), strings.Join(methods, "\n"))
 
+	// fmt.Printf("UNFORMATTED:\n%s\n", string(raw))
+
 	formatted, err := format.Source([]byte(raw))
 	if err != nil {
 		panic(err) // should never happen
@@ -148,12 +150,13 @@ func (x *%s) UnmarshalSia(r io.Reader) error {
 }
 
 func (g *generator) genEncodeBody(ident string, t types.Type) string {
+	tOriginal := t
 	switch t := t.Underlying().(type) {
 	case *types.Basic:
 		if t.Info()&types.IsInteger != 0 {
-			return fmt.Sprintf("e.WriteUint64(uint64(%s))\n", ident)
+			return fmt.Sprintf("e.WriteUint64(%s)\n", cast(ident, t, types.Typ[types.Uint64]))
 		} else if t.Kind() == types.Bool {
-			return fmt.Sprintf("e.WriteBool(bool(%s))\n", ident)
+			return fmt.Sprintf("e.WriteBool(%s)\n", ident)
 		} else if t.Kind() == types.String {
 			return fmt.Sprintf("e.WritePrefixedBytes([]byte(%s))\n", ident)
 		}
@@ -170,27 +173,41 @@ func (g *generator) genEncodeBody(ident string, t types.Type) string {
 	case *types.Slice:
 		// check for []byte
 		if basic, ok := t.Elem().(*types.Basic); ok && basic.Kind() == types.Byte {
-			return fmt.Sprintf("e.WritePrefixedBytes([]byte(%s))\n", ident)
+			return fmt.Sprintf("e.WritePrefixedBytes(%s)\n", ident)
 		}
 		prefix := fmt.Sprintf("e.WriteInt(len(%s))\n", ident)
 		body := g.genEncodeBody("v", t.Elem())
 		return prefix + fmt.Sprintf("for _, v := range %s { %s }\n", ident, body)
 	case *types.Struct:
-		var body string
-		for i := 0; i < t.NumFields(); i++ {
-			field := t.Field(i)
-			body += g.genEncodeBody(ident+"."+field.Name(), field.Type())
+		named, ok := tOriginal.(*types.Named)
+		if !ok {
+			// we don't have a named type, i.e. an anonymous struct
+			var body string
+			for i := 0; i < t.NumFields(); i++ {
+				field := t.Field(i)
+				body += g.genEncodeBody(ident+"."+field.Name(), field.Type())
+			}
+			return body
+		} else {
+			// if we're in the same package as the type, generate code for it
+			if named.Obj().Pkg() == g.pkg.Types {
+				g.genMethods(named.Obj().Name())
+				return fmt.Sprintf("%s.MarshalSia(e)\n", ident)
+			} else {
+				// foreign type - TODO: check for presence of MarshalSia
+				return fmt.Sprintf("e.Encode(%s)\n", ident)
+			}
 		}
-		return body
 	}
 	panic("unreachable")
 }
 
 func (g *generator) genDecodeBody(ident string, t types.Type) string {
+	tOriginal := t
 	switch t := t.Underlying().(type) {
 	case *types.Basic:
 		if t.Info()&types.IsInteger != 0 {
-			return fmt.Sprintf("%s = %s(d.NextUint64())\n", ident, t)
+			return fmt.Sprintf("%s = %s\n", ident, cast("d.NextUint64()", types.Typ[types.Uint64], t))
 		} else if t.Kind() == types.Bool {
 			return fmt.Sprintf("%s = %s(d.NextBool())\n", ident, t)
 		} else if t.Kind() == types.String {
@@ -228,12 +245,26 @@ func (g *generator) genDecodeBody(ident string, t types.Type) string {
 		body := g.genDecodeBody("(*v)", t.Elem())
 		return prefix + fmt.Sprintf("for i := range %s {v := &%s[i]; %s}\n", ident, ident, body)
 	case *types.Struct:
-		var body string
-		for i := 0; i < t.NumFields(); i++ {
-			field := t.Field(i)
-			body += g.genDecodeBody(ident+"."+field.Name(), field.Type())
+		named, ok := tOriginal.(*types.Named)
+		if !ok {
+			// anonymous struct
+			var body string
+			for i := 0; i < t.NumFields(); i++ {
+				field := t.Field(i)
+				body += g.genDecodeBody(ident+"."+field.Name(), field.Type())
+			}
+			return body
+		} else {
+			// if we're in the same package as the type, generate code for it
+			if named.Obj().Pkg() == g.pkg.Types {
+				g.genMethods(named.Obj().Name())
+				return fmt.Sprintf("(&%s).UnmarshalSia(d)\n", ident)
+			} else {
+				// foreign type - TODO: check for presence of UnmarshalSia
+				return fmt.Sprintf("d.Decode(&%s)\n", ident)
+			}
 		}
-		return body
+
 	}
 	panic("unreachable")
 }
@@ -262,6 +293,17 @@ func sizeof(t types.Type) int {
 	panic("unreachable")
 }
 
+func cast(ident string, from types.Type, to types.Type) string {
+	/*
+		I *think* types.AssignableTo might be preferable here, but we should
+		check that it doesn't skip any casts that are actually necessary
+	*/
+	if types.Identical(from, to) {
+		return ident
+	}
+	return fmt.Sprintf("%s(%s)", types.TypeString(to, (*types.Package).Name), ident)
+}
+
 // for testing; delete later
 
 type Foo struct {
@@ -270,6 +312,10 @@ type Foo struct {
 	C []test.Imported
 	D [][]test.Imported
 	E [40]test.Imported
+	F Slice
+	G struct {
+		LOL [3][]uint32
+	}
 	X int
 	Y uint64
 	Z [][][]uint64
