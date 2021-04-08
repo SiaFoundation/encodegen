@@ -190,12 +190,19 @@ func (g *generator) genEncodeBody(ident string, t types.Type) string {
 			return body
 		} else {
 			// if we're in the same package as the type, generate code for it
-			if named.Obj().Pkg() == g.pkg.Types {
+			namedPkg := named.Obj().Pkg()
+			if namedPkg == g.pkg.Types {
+				// local type
 				g.genMethods(named.Obj().Name())
 				return fmt.Sprintf("%s.MarshalSia(e)\n", ident)
 			} else {
-				// foreign type - TODO: check for presence of MarshalSia
-				return fmt.Sprintf("e.Encode(%s)\n", ident)
+				// imported - check if we have marshalsia: if yes, use it, if not, use reflection
+				marshalSiaObject, _, _ := types.LookupFieldOrMethod(namedPkg.Scope().Lookup(named.Obj().Name()).Type(), true, namedPkg, "MarshalSia")
+				if marshalSiaObject == nil {
+					return fmt.Sprintf("e.Encode(%s)\n", ident)
+				} else {
+					return fmt.Sprintf("%s.MarshalSia(e)\n", ident)
+				}
 			}
 		}
 	}
@@ -260,8 +267,15 @@ func (g *generator) genDecodeBody(ident string, t types.Type) string {
 				g.genMethods(named.Obj().Name())
 				return fmt.Sprintf("(&%s).UnmarshalSia(d)\n", ident)
 			} else {
-				// foreign type - TODO: check for presence of UnmarshalSia
-				return fmt.Sprintf("d.Decode(&%s)\n", ident)
+				namedPkg := named.Obj().Pkg()
+
+				// imported - check if we have unmarshalsia: if yes, use it, if not, use reflection
+				unmarshalSiaObject, _, _ := types.LookupFieldOrMethod(namedPkg.Scope().Lookup(named.Obj().Name()).Type(), true, namedPkg, "UnmarshalSia")
+				if unmarshalSiaObject == nil {
+					return fmt.Sprintf("d.Decode(&%s)\n", ident)
+				} else {
+					return fmt.Sprintf("(&%s).UnmarshalSia(d)\n", ident)
+				}
 			}
 		}
 

@@ -22,3 +22,9 @@ encodegen -t MyType -o output.go
     * -pkg: name of target package
     * -o: destination of generated code (optional; omit for stdout)
     * -t: types to generate, comma separated
+
+## Test
+
+$ cd test
+$ go run ../. -t TestMessageSimple,TestMessageEmbedded -o encoding.go
+$ go test
