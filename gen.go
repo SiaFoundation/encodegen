@@ -2,17 +2,25 @@ package main
 
 import (
 	"fmt"
-	"go.sia.tech/encodegen/test"
 	"go/format"
 	"go/types"
 	"golang.org/x/tools/go/packages"
+	"io"
 	"strings"
 )
 
 type generator struct {
-	pkg     *packages.Package
-	typs    map[string]string
-	imports []string
+	pkg         *packages.Package
+	encodingPkg *packages.Package
+	typs        map[string]string
+	imports     []string
+}
+
+type SiaMarshaler interface {
+	MarshalSia(w io.Writer) error
+}
+type SiaUnmarshaler interface {
+	UnmarshalSia(r io.Reader) error
 }
 
 func (g *generator) addImport(pkg string) {
@@ -25,16 +33,36 @@ func (g *generator) addImport(pkg string) {
 }
 
 func Generate(pkgName string, typs ...string) (string, error) {
-	// load source
+	/*
+		load source
+
+		see https://stackoverflow.com/q/50197961
+		import the encodegen packages at the same time as the user requested packages or types.implements breaks
+	*/
 	cfg := &packages.Config{Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports}
-	pkgs, err := packages.Load(cfg, pkgName)
+	// pkgs[0] - user requested package; pkgs[1] - encodegen package;
+	pkgs, err := packages.Load(cfg, pkgName, "go.sia.tech/encodegen")
 	if err != nil {
 		return "", err
 	}
 
+	/*
+		these assignments (to siaMarshaler und siaUnmarshaler) are just for convenience in the error checking if statements.  I wasn't sure whether it was preferable to use global variables because they couldn't be done nicely using the var x = func(){...}() method.
+		in genDecode/genEncode we do the lookup on encodePkg of SiaMarshaler and Unmarshaler.  I think this is preferable to having a siaMarshaler and siaUnmarshaler field on the struct.
+	*/
+	siaMarshaler := pkgs[1].Types.Scope().Lookup("SiaMarshaler")
+	if siaMarshaler == nil || !types.IsInterface(siaMarshaler.Type()) {
+		panic("no SiaMarshaler interface defined on encodegen package")
+	}
+	siaUnmarshaler := pkgs[1].Types.Scope().Lookup("SiaUnmarshaler")
+	if siaUnmarshaler == nil || !types.IsInterface(siaUnmarshaler.Type()) {
+		panic("no SiaUnmarshaler interface defined on encodegen package")
+	}
+
 	g := &generator{
-		pkg:  pkgs[0],
-		typs: make(map[string]string),
+		pkg:         pkgs[0],
+		encodingPkg: pkgs[1],
+		typs:        make(map[string]string),
 	}
 	g.addImport("io") // for io.Reader/io.Writer in method signatures
 	g.addImport("gitlab.com/NebulousLabs/encoding")
@@ -92,6 +120,8 @@ func (g *generator) checkType(typName string) error {
 				}
 			}
 			return nil
+		case *types.Pointer:
+			return check(t.Elem(), "*"+ctx)
 		}
 		if ctx != "" {
 			return fmt.Errorf("unsupported type %s at (%s)%s", t, typName, ctx)
@@ -189,22 +219,21 @@ func (g *generator) genEncodeBody(ident string, t types.Type) string {
 			}
 			return body
 		} else {
-			// if we're in the same package as the type, generate code for it
-			namedPkg := named.Obj().Pkg()
-			if namedPkg == g.pkg.Types {
-				// local type
+			if named.Obj().Pkg() == g.pkg.Types {
+				// if we're in the same package as the type, generate code for it
 				g.genMethods(named.Obj().Name())
 				return fmt.Sprintf("%s.MarshalSia(e)\n", ident)
 			} else {
-				// imported - check if we have marshalsia: if yes, use it, if not, use reflection
-				marshalSiaObject, _, _ := types.LookupFieldOrMethod(namedPkg.Scope().Lookup(named.Obj().Name()).Type(), true, namedPkg, "MarshalSia")
-				if marshalSiaObject == nil {
-					return fmt.Sprintf("e.Encode(%s)\n", ident)
-				} else {
+				if types.Implements(tOriginal, g.encodingPkg.Types.Scope().Lookup("SiaMarshaler").Type().Underlying().(*types.Interface)) {
 					return fmt.Sprintf("%s.MarshalSia(e)\n", ident)
+				} else {
+					return fmt.Sprintf("e.Encode(%s)\n", ident)
 				}
 			}
 		}
+	case *types.Pointer:
+		body := g.genEncodeBody(fmt.Sprintf("(*%s)", ident), t.Elem())
+		return fmt.Sprintf("if %s != nil { e.WriteBool(true); %s; } else { e.WriteBool(false) } \n", ident, body)
 	}
 	panic("unreachable")
 }
@@ -267,18 +296,22 @@ func (g *generator) genDecodeBody(ident string, t types.Type) string {
 				g.genMethods(named.Obj().Name())
 				return fmt.Sprintf("(&%s).UnmarshalSia(d)\n", ident)
 			} else {
-				namedPkg := named.Obj().Pkg()
-
 				// imported - check if we have unmarshalsia: if yes, use it, if not, use reflection
-				unmarshalSiaObject, _, _ := types.LookupFieldOrMethod(namedPkg.Scope().Lookup(named.Obj().Name()).Type(), true, namedPkg, "UnmarshalSia")
-				if unmarshalSiaObject == nil {
-					return fmt.Sprintf("d.Decode(&%s)\n", ident)
-				} else {
+				// call types.NewPointer on original type because UnmarshalSia works on pointers of types
+				if types.Implements(types.NewPointer(tOriginal), g.encodingPkg.Types.Scope().Lookup("SiaUnmarshaler").Type().Underlying().(*types.Interface)) {
 					return fmt.Sprintf("(&%s).UnmarshalSia(d)\n", ident)
+				} else {
+					return fmt.Sprintf("d.Decode(&%s)\n", ident)
 				}
 			}
 		}
-
+	case *types.Pointer:
+		// if we have an imported type
+		if named, ok := t.Elem().(*types.Named); ok {
+			g.addImport(named.Obj().Pkg().Path())
+		}
+		body := g.genDecodeBody(fmt.Sprintf("(*%s)", ident), t.Elem())
+		return fmt.Sprintf("if d.NextBool() { %s = new(%s); %s }\n", ident, types.TypeString(t.Elem(), (*types.Package).Name), body)
 	}
 	panic("unreachable")
 }
@@ -303,6 +336,9 @@ func sizeof(t types.Type) int {
 			total += sizeof(t.Field(i).Type())
 		}
 		return total
+	case *types.Pointer:
+		// sizeof the true/false for whether its null or not
+		return 1
 	}
 	panic("unreachable")
 }
@@ -316,37 +352,4 @@ func cast(ident string, from types.Type, to types.Type) string {
 		return ident
 	}
 	return fmt.Sprintf("%s(%s)", types.TypeString(to, (*types.Package).Name), ident)
-}
-
-// for testing; delete later
-
-type Foo struct {
-	A test.Imported
-	B test.Hash
-	C []test.Imported
-	D [][]test.Imported
-	E [40]test.Imported
-	F Slice
-	G struct {
-		LOL [3][]uint32
-	}
-	X int
-	Y uint64
-	Z [][][]uint64
-}
-
-type FooAlias Foo
-
-type Slice struct {
-	b []byte
-}
-
-type Hash [32]byte
-
-type Array struct {
-	Bar int
-	Str string
-	LOL [10][]struct {
-		Inner [3]uint32
-	}
 }

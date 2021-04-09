@@ -1,10 +1,8 @@
 package test
 
-type Imported struct {
-	A int
-	B string
-	C bool
-}
+import (
+	"go.sia.tech/encodegen/test/imported"
+)
 
 type Hash [32]byte
 
@@ -16,6 +14,11 @@ type TestMessageSimple struct {
 	E bool
 	F [32]Hash
 	G []byte
+	H imported.Imported
+	I *uint64
+	J *imported.Imported
+	K ***uint64
+	L []*imported.Imported
 }
 
 type TestMessageEmbedded struct {
