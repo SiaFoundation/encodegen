@@ -21,6 +21,11 @@ type TestMessageSimple struct {
 	L []*imported.Imported
 }
 
+type TestMessageSecond struct {
+	A uint64
+	B TestMessageSimple
+}
+
 type TestMessageEmbedded struct {
 	A struct {
 		A uint64
