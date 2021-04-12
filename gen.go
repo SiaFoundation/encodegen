@@ -35,6 +35,14 @@ func (g *generator) addImport(pkg string) {
 	g.imports = append(g.imports, pkg)
 }
 
+func (g *generator) addImportType(t types.Type) {
+	if named, ok := t.(*types.Named); ok {
+		if pkg := named.Obj().Pkg(); pkg != g.pkg.Types {
+			g.addImport(pkg.Path())
+		}		
+	}
+}
+
 func (g *generator) willGenerate(t types.Type) bool {
 	if named, ok := t.(*types.Named); ok && named.Obj().Pkg() == g.pkg.Types {
 		return g.typs[types.TypeString(t, types.RelativeTo(g.pkg.Types))] != ""
@@ -182,24 +190,8 @@ func (x *%s) UnmarshalSia(r io.Reader) error {
 	return nil
 }
 
-func (g *generator) genEncodeBody(ident string, t types.Type) string {
-	// If the type is defined in a separate package, import it
-	//
-	// NOTE: we need to do this in both genEncode and genDecode because of types
-	// that implement SiaMarshaler but not SiaUnmarshaler (or vice versa)
-	if named, ok := t.(*types.Named); ok {
-		if pkg := named.Obj().Pkg(); pkg != g.pkg.Types {
-			g.addImport(pkg.Path())
-		}
-	}
-
-	// If the type has a MarshalSia method defined (or if they *will* have such
-	// a method defined when we're done), use it.
-	if types.Implements(t, siaMarshaler) || g.willGenerate(t) {
-		return fmt.Sprintf("%s.MarshalSia(e)\n", ident)
-	}
-
-	switch t := t.Underlying().(type) {
+func (g *generator) genEncodeBody(ident string, tOriginal types.Type) string {
+	switch t := tOriginal.Underlying().(type) {
 	case *types.Basic:
 		if t.Info()&types.IsInteger != 0 {
 			return fmt.Sprintf("e.WriteUint64(%s)\n", cast(ident, t, types.Typ[types.Uint64]))
@@ -227,12 +219,18 @@ func (g *generator) genEncodeBody(ident string, t types.Type) string {
 		body := g.genEncodeBody("v", t.Elem())
 		return prefix + fmt.Sprintf("for _, v := range %s { %s }\n", ident, body)
 	case *types.Struct:
-		var body string
-		for i := 0; i < t.NumFields(); i++ {
-			field := t.Field(i)
-			body += g.genEncodeBody(ident+"."+field.Name(), field.Type())
+		// If the type has a MarshalSia method defined (or if they *will* have such
+		// a method defined when we're done), use it.
+		if types.Implements(tOriginal, siaMarshaler) || g.willGenerate(tOriginal) {
+			return fmt.Sprintf("%s.MarshalSia(e)\n", ident)
+		} else {
+			var body string
+			for i := 0; i < t.NumFields(); i++ {
+				field := t.Field(i)
+				body += g.genEncodeBody(ident+"."+field.Name(), field.Type())
+			}
+			return body
 		}
-		return body
 	case *types.Pointer:
 		body := g.genEncodeBody(fmt.Sprintf("(*%s)", ident), t.Elem())
 		return fmt.Sprintf("e.WriteBool(%s != nil); if %s != nil { %s }\n", ident, ident, body)
@@ -240,24 +238,20 @@ func (g *generator) genEncodeBody(ident string, t types.Type) string {
 	panic("unreachable")
 }
 
-func (g *generator) genDecodeBody(ident string, t types.Type) string {
+func (g *generator) genDecodeBody(ident string, tOriginal types.Type) string {
 	// If the type is defined in a separate package, import it
-	//
-	// NOTE: we need to do this in both genEncode and genDecode because of types
-	// that implement SiaMarshaler but not SiaUnmarshaler (or vice versa)
-	if named, ok := t.(*types.Named); ok {
-		if pkg := named.Obj().Pkg(); pkg != g.pkg.Types {
-			g.addImport(pkg.Path())
-		}
+	// We only need to do this for slices and pointers because they
+	// are the only cases where we actually reference the type by name.
+	// For decoding pointers, we make a call to new(typeName) so it is necessary,
+	// and in slices we need to call make().
+	// Adding imports for other kinds of types results in unused import errors
+	if arr, ok := tOriginal.(*types.Slice); ok {
+		g.addImportType(arr.Elem())
+	} else if ptr, ok := tOriginal.(*types.Pointer); ok {
+		g.addImportType(ptr.Elem())		
 	}
 
-	// If the type has an UnmarshalSia method defined (or if they *will* have such
-	// a method defined when we're done), use it.
-	if types.Implements(t, siaUnmarshaler) || g.willGenerate(t) {
-		return fmt.Sprintf("%s.UnmarshalSia(d)\n", ident)
-	}
-
-	switch t := t.Underlying().(type) {
+	switch t := tOriginal.Underlying().(type) {
 	case *types.Basic:
 		if t.Info()&types.IsInteger != 0 {
 			return fmt.Sprintf("%s = %s\n", ident, cast("d.NextUint64()", types.Typ[types.Uint64], t))
@@ -292,17 +286,19 @@ func (g *generator) genDecodeBody(ident string, t types.Type) string {
 		body := g.genDecodeBody("(*v)", t.Elem())
 		return prefix + fmt.Sprintf("for i := range %s {v := &%s[i]; %s}\n", ident, ident, body)
 	case *types.Struct:
-		var body string
-		for i := 0; i < t.NumFields(); i++ {
-			field := t.Field(i)
-			body += g.genDecodeBody(ident+"."+field.Name(), field.Type())
+		// If the type has an UnmarshalSia method defined (or if they *will* have such
+		// a method defined when we're done), use it.
+		if types.Implements(types.NewPointer(tOriginal), siaUnmarshaler) || g.willGenerate(tOriginal) {
+			return fmt.Sprintf("%s.UnmarshalSia(d)\n", ident)
+		} else {
+			var body string
+			for i := 0; i < t.NumFields(); i++ {
+				field := t.Field(i)
+				body += g.genDecodeBody(ident+"."+field.Name(), field.Type())
+			}
+			return body
 		}
-		return body
 	case *types.Pointer:
-		// if we have an imported type
-		if named, ok := t.Elem().(*types.Named); ok {
-			g.addImport(named.Obj().Pkg().Path())
-		}
 		body := g.genDecodeBody(fmt.Sprintf("(*%s)", ident), t.Elem())
 		return fmt.Sprintf("if d.NextBool() { %s = new(%s); %s }\n", ident, types.TypeString(t.Elem(), (*types.Package).Name), body)
 	}

@@ -8,102 +8,6 @@ import (
 )
 
 // MarshalSia implements encoding.SiaMarshaler.
-func (x TestMessageSimple) MarshalSia(w io.Writer) error {
-	e := encoding.NewEncoder(w)
-	e.WriteUint64(x.A)
-	e.WriteUint64(uint64(x.B))
-	e.WriteUint64(uint64(x.C))
-	e.WriteUint64(uint64(x.D))
-	e.WriteBool(x.E)
-	for _, v := range &x.F {
-		e.Write(v[:])
-	}
-	e.WritePrefixedBytes(x.G)
-	x.H.MarshalSia(e)
-	if x.I != nil {
-		e.WriteBool(true)
-		e.WriteUint64((*x.I))
-	} else {
-		e.WriteBool(false)
-	}
-	if x.J != nil {
-		e.WriteBool(true)
-		(*x.J).MarshalSia(e)
-	} else {
-		e.WriteBool(false)
-	}
-	if x.K != nil {
-		e.WriteBool(true)
-		if (*x.K) != nil {
-			e.WriteBool(true)
-			if (*(*x.K)) != nil {
-				e.WriteBool(true)
-				e.WriteUint64((*(*(*x.K))))
-			} else {
-				e.WriteBool(false)
-			}
-		} else {
-			e.WriteBool(false)
-		}
-	} else {
-		e.WriteBool(false)
-	}
-	e.WriteInt(len(x.L))
-	for _, v := range x.L {
-		if v != nil {
-			e.WriteBool(true)
-			(*v).MarshalSia(e)
-		} else {
-			e.WriteBool(false)
-		}
-	}
-	return e.Err()
-}
-
-// UnmarshalSia implements encoding.SiaUnmarshaler.
-func (x *TestMessageSimple) UnmarshalSia(r io.Reader) error {
-	d := encoding.NewDecoder(r, encoding.DefaultAllocLimit)
-	x.A = d.NextUint64()
-	x.B = uint32(d.NextUint64())
-	x.C = uint16(d.NextUint64())
-	x.D = uint8(d.NextUint64())
-	x.E = bool(d.NextBool())
-	for i := range x.F {
-		v := &x.F[i]
-		d.Read((*v)[:])
-	}
-	x.G = []byte(d.ReadPrefixedBytes())
-	(&x.H).UnmarshalSia(d)
-	if d.NextBool() {
-		x.I = new(uint64)
-		(*x.I) = d.NextUint64()
-	}
-	if d.NextBool() {
-		x.J = new(imported.Imported)
-		(&(*x.J)).UnmarshalSia(d)
-	}
-	if d.NextBool() {
-		x.K = new(**uint64)
-		if d.NextBool() {
-			(*x.K) = new(*uint64)
-			if d.NextBool() {
-				(*(*x.K)) = new(uint64)
-				(*(*(*x.K))) = d.NextUint64()
-			}
-		}
-	}
-	x.L = make([]*imported.Imported, d.NextPrefix(1))
-	for i := range x.L {
-		v := &x.L[i]
-		if d.NextBool() {
-			(*v) = new(imported.Imported)
-			(&(*(*v))).UnmarshalSia(d)
-		}
-	}
-	return d.Err()
-}
-
-// MarshalSia implements encoding.SiaMarshaler.
 func (x TestMessageEmbedded) MarshalSia(w io.Writer) error {
 	e := encoding.NewEncoder(w)
 	e.WriteUint64(x.A.A)
@@ -134,6 +38,90 @@ func (x *TestMessageEmbedded) UnmarshalSia(r io.Reader) error {
 	for i := range x.A.H.I {
 		v := &x.A.H.I[i]
 		(*v) = int(d.NextUint64())
+	}
+	return d.Err()
+}
+
+// MarshalSia implements encoding.SiaMarshaler.
+func (x TestMessageSimple) MarshalSia(w io.Writer) error {
+	e := encoding.NewEncoder(w)
+	e.WriteUint64(x.A)
+	e.WriteUint64(uint64(x.B))
+	e.WriteUint64(uint64(x.C))
+	e.WriteUint64(uint64(x.D))
+	e.WriteBool(x.E)
+	for _, v := range &x.F {
+		e.Write(v[:])
+	}
+	e.WritePrefixedBytes(x.G)
+	x.H.MarshalSia(e)
+	e.WriteBool(x.I != nil)
+	if x.I != nil {
+		e.WriteUint64((*x.I))
+	}
+	e.WriteBool(x.J != nil)
+	if x.J != nil {
+		(*x.J).MarshalSia(e)
+	}
+	e.WriteBool(x.K != nil)
+	if x.K != nil {
+		e.WriteBool((*x.K) != nil)
+		if (*x.K) != nil {
+			e.WriteBool((*(*x.K)) != nil)
+			if (*(*x.K)) != nil {
+				e.WriteUint64((*(*(*x.K))))
+			}
+		}
+	}
+	e.WriteInt(len(x.L))
+	for _, v := range x.L {
+		e.WriteBool(v != nil)
+		if v != nil {
+			(*v).MarshalSia(e)
+		}
+	}
+	return e.Err()
+}
+
+// UnmarshalSia implements encoding.SiaUnmarshaler.
+func (x *TestMessageSimple) UnmarshalSia(r io.Reader) error {
+	d := encoding.NewDecoder(r, encoding.DefaultAllocLimit)
+	x.A = d.NextUint64()
+	x.B = uint32(d.NextUint64())
+	x.C = uint16(d.NextUint64())
+	x.D = uint8(d.NextUint64())
+	x.E = bool(d.NextBool())
+	for i := range x.F {
+		v := &x.F[i]
+		d.Read((*v)[:])
+	}
+	x.G = []byte(d.ReadPrefixedBytes())
+	x.H.UnmarshalSia(d)
+	if d.NextBool() {
+		x.I = new(uint64)
+		(*x.I) = d.NextUint64()
+	}
+	if d.NextBool() {
+		x.J = new(imported.Imported)
+		(*x.J).UnmarshalSia(d)
+	}
+	if d.NextBool() {
+		x.K = new(**uint64)
+		if d.NextBool() {
+			(*x.K) = new(*uint64)
+			if d.NextBool() {
+				(*(*x.K)) = new(uint64)
+				(*(*(*x.K))) = d.NextUint64()
+			}
+		}
+	}
+	x.L = make([]*imported.Imported, d.NextPrefix(1))
+	for i := range x.L {
+		v := &x.L[i]
+		if d.NextBool() {
+			(*v) = new(imported.Imported)
+			(*(*v)).UnmarshalSia(d)
+		}
 	}
 	return d.Err()
 }
