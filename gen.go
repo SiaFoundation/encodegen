@@ -39,7 +39,7 @@ func (g *generator) addImportType(t types.Type) {
 	if named, ok := t.(*types.Named); ok {
 		if pkg := named.Obj().Pkg(); pkg != g.pkg.Types {
 			g.addImport(pkg.Path())
-		}		
+		}
 	}
 }
 
@@ -248,7 +248,7 @@ func (g *generator) genDecodeBody(ident string, tOriginal types.Type) string {
 	if arr, ok := tOriginal.(*types.Slice); ok {
 		g.addImportType(arr.Elem())
 	} else if ptr, ok := tOriginal.(*types.Pointer); ok {
-		g.addImportType(ptr.Elem())		
+		g.addImportType(ptr.Elem())
 	}
 
 	switch t := tOriginal.Underlying().(type) {
