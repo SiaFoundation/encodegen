@@ -2,25 +2,52 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
-func main() {
-	pkg := flag.String("pkg", "", "name of target package")
-	dst := flag.String("o", "", "destination of generated code (optional; omit for stdout)")
-	typs := flag.String("t", "", "types to generate, comma separated")
-	flag.Parse()
+func isDir(name string) bool {
+	info, err := os.Stat(name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return info.IsDir()
+}
 
-	code, err := Generate(*pkg, strings.Split(*typs, ",")...)
+func main() {
+	log.SetFlags(0)
+	log.SetPrefix("encodegen: ")
+	flag.Usage = func() {
+		os.Stderr.WriteString("Usage: encodgen [flags] -t T [directory]\n\nFlags:\n")
+		flag.PrintDefaults()
+	}
+
+	dst := flag.String("o", "", "output file name; default srcdir/encoding.go")
+	typs := flag.String("t", "", "comma-separated list of type names; required")
+	flag.Parse()
+	args := flag.Args()
+
+	if len(args) > 1 || *typs == "" {
+		flag.Usage()
+		os.Exit(2)
+	}
+	dir := "."
+	if len(args) > 0 {
+		dir = args[0]
+		if !isDir(dir) {
+			log.Fatalln(dir, "is not a directory")
+		}
+	}
+
+	code, err := Generate(dir, strings.Split(*typs, ",")...)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if *dst == "" {
-		fmt.Println(code)
-		return
+		*dst = filepath.Join(dir, "encoding.go")
 	}
 	if err := ioutil.WriteFile(*dst, []byte(code), 0644); err != nil {
 		log.Fatal(err)
