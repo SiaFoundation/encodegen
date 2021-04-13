@@ -38,6 +38,7 @@ var simpleMessage = TestMessageSimple{
 	J: &imported.Imported{A: 555, B: "AAA", C: false},
 	K: new(**uint64),
 	L: []*imported.Imported{nil, {A: 999}, nil, nil, {C: true}},
+	M: [32]byte{5},
 }
 
 var embeddedMessage = TestMessageEmbedded{
@@ -61,6 +62,23 @@ var embeddedMessage = TestMessageEmbedded{
 		F: false,
 		G: []byte{0, 1, 2, 3, 4},
 		H: struct{ I []int }{I: []int{99, 0, 99}},
+	},
+	B: []struct {
+		A int
+		B string
+		C bool
+		D imported.Imported
+	}{
+		{A: 5, B: "X", C: true, D: imported.Imported{A: 5, B: "AAA", C: true}},
+		{A: 1, B: "AAA", C: false},
+	},
+	C: []*struct {
+		A int
+		B string
+		C bool
+	}{
+		{A: 5, B: "X", C: true},
+		{A: 1, B: "AAA", C: false},
 	},
 }
 
@@ -141,7 +159,7 @@ func BenchmarkSimpleMessageOfficialUnmarshal(b *testing.B) {
 }
 
 func BenchmarkEmbeddedMessageOfficialMarshal(b *testing.B) {
-	benchmarkOfficialMarshal(b, simpleMessage)
+	benchmarkOfficialMarshal(b, embeddedMessage)
 }
 
 func BenchmarkEmbeddedMessageOfficialUnmarshal(b *testing.B) {

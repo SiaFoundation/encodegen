@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"go/build"
 	"go/format"
 	"go/types"
 	"io"
+	"os"
+	"path"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
@@ -51,18 +54,26 @@ func (g *generator) willGenerate(t types.Type) bool {
 }
 
 func Generate(pkgName string, typs ...string) (string, error) {
-	/*
-		load source
+	// if a package is not specified, use current direcotry
+	if path.Clean(pkgName) == "" || path.Clean(pkgName) == "." {
+		pwd, err := os.Getwd()
+		if err != nil {
+			return "", err
+		}
+		pkgName = pwd
+	}
 
-		see https://stackoverflow.com/q/50197961
-		import the encodegen packages at the same time as the user requested packages or types.implements breaks
-	*/
-	cfg := &packages.Config{Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports}
-	// pkgs[0] - user requested package; pkgs[1] - encodegen package;
+	cfg := &packages.Config{Dir: gopath(), Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports}
+
+	// load source
+	// see https://stackoverflow.com/q/50197961
+	// import the encodegen packages at the same time as the user requested packages or types.implements breaks
 	pkgs, err := packages.Load(cfg, pkgName, "go.sia.tech/encodegen")
 	if err != nil {
 		return "", err
 	}
+
+	// pkgs[0] - user requested package; pkgs[1] - encodegen package;
 	siaMarshaler = pkgs[1].Types.Scope().Lookup("SiaMarshaler").Type().Underlying().(*types.Interface)
 	siaUnmarshaler = pkgs[1].Types.Scope().Lookup("SiaUnmarshaler").Type().Underlying().(*types.Interface)
 
@@ -136,6 +147,7 @@ func (g *generator) checkType(typName string) error {
 		case *types.Pointer:
 			return check(t.Elem(), "*"+ctx)
 		}
+
 		if ctx != "" {
 			return fmt.Errorf("unsupported type %s at (%s)%s", t, typName, ctx)
 		}
@@ -341,4 +353,13 @@ func cast(ident string, from types.Type, to types.Type) string {
 		return ident
 	}
 	return fmt.Sprintf("%s(%s)", types.TypeString(to, (*types.Package).Name), ident)
+}
+
+func gopath() string {
+	gopath := os.Getenv("GOPATH")
+	if gopath != "" {
+		return gopath
+	} else {
+		return build.Default.GOPATH
+	}
 }

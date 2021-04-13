@@ -8,41 +8,6 @@ import (
 )
 
 // MarshalSia implements encoding.SiaMarshaler.
-func (x TestMessageEmbedded) MarshalSia(w io.Writer) error {
-	e := encoding.NewEncoder(w)
-	e.WriteUint64(x.A.A)
-	e.WriteUint64(uint64(x.A.B))
-	e.WriteUint64(uint64(x.A.C))
-	e.WriteUint64(uint64(x.A.D))
-	e.WriteUint64(uint64(x.A.E))
-	e.WriteBool(x.A.F)
-	e.WritePrefixedBytes(x.A.G)
-	e.WriteInt(len(x.A.H.I))
-	for _, v := range x.A.H.I {
-		e.WriteUint64(uint64(v))
-	}
-	return e.Err()
-}
-
-// UnmarshalSia implements encoding.SiaUnmarshaler.
-func (x *TestMessageEmbedded) UnmarshalSia(r io.Reader) error {
-	d := encoding.NewDecoder(r, encoding.DefaultAllocLimit)
-	x.A.A = d.NextUint64()
-	x.A.B = uint32(d.NextUint64())
-	x.A.C = uint16(d.NextUint64())
-	x.A.D = uint8(d.NextUint64())
-	x.A.E = int8(d.NextUint64())
-	x.A.F = bool(d.NextBool())
-	x.A.G = []byte(d.ReadPrefixedBytes())
-	x.A.H.I = make([]int, d.NextPrefix(8))
-	for i := range x.A.H.I {
-		v := &x.A.H.I[i]
-		(*v) = int(d.NextUint64())
-	}
-	return d.Err()
-}
-
-// MarshalSia implements encoding.SiaMarshaler.
 func (x TestMessageSimple) MarshalSia(w io.Writer) error {
 	e := encoding.NewEncoder(w)
 	e.WriteUint64(x.A)
@@ -80,6 +45,7 @@ func (x TestMessageSimple) MarshalSia(w io.Writer) error {
 			(*v).MarshalSia(e)
 		}
 	}
+	e.Write(x.M[:])
 	return e.Err()
 }
 
@@ -121,6 +87,89 @@ func (x *TestMessageSimple) UnmarshalSia(r io.Reader) error {
 		if d.NextBool() {
 			(*v) = new(imported.Imported)
 			(*(*v)).UnmarshalSia(d)
+		}
+	}
+	d.Read(x.M[:])
+	return d.Err()
+}
+
+// MarshalSia implements encoding.SiaMarshaler.
+func (x TestMessageEmbedded) MarshalSia(w io.Writer) error {
+	e := encoding.NewEncoder(w)
+	e.WriteUint64(x.A.A)
+	e.WriteUint64(uint64(x.A.B))
+	e.WriteUint64(uint64(x.A.C))
+	e.WriteUint64(uint64(x.A.D))
+	e.WriteUint64(uint64(x.A.E))
+	e.WriteBool(x.A.F)
+	e.WritePrefixedBytes(x.A.G)
+	e.WriteInt(len(x.A.H.I))
+	for _, v := range x.A.H.I {
+		e.WriteUint64(uint64(v))
+	}
+	e.WriteInt(len(x.B))
+	for _, v := range x.B {
+		e.WriteUint64(uint64(v.A))
+		e.WritePrefixedBytes([]byte(v.B))
+		e.WriteBool(v.C)
+		v.D.MarshalSia(e)
+	}
+	e.WriteInt(len(x.C))
+	for _, v := range x.C {
+		e.WriteBool(v != nil)
+		if v != nil {
+			e.WriteUint64(uint64((*v).A))
+			e.WritePrefixedBytes([]byte((*v).B))
+			e.WriteBool((*v).C)
+		}
+	}
+	return e.Err()
+}
+
+// UnmarshalSia implements encoding.SiaUnmarshaler.
+func (x *TestMessageEmbedded) UnmarshalSia(r io.Reader) error {
+	d := encoding.NewDecoder(r, encoding.DefaultAllocLimit)
+	x.A.A = d.NextUint64()
+	x.A.B = uint32(d.NextUint64())
+	x.A.C = uint16(d.NextUint64())
+	x.A.D = uint8(d.NextUint64())
+	x.A.E = int8(d.NextUint64())
+	x.A.F = bool(d.NextBool())
+	x.A.G = []byte(d.ReadPrefixedBytes())
+	x.A.H.I = make([]int, d.NextPrefix(8))
+	for i := range x.A.H.I {
+		v := &x.A.H.I[i]
+		(*v) = int(d.NextUint64())
+	}
+	x.B = make([]struct {
+		A int
+		B string
+		C bool
+		D imported.Imported
+	}, d.NextPrefix(34))
+	for i := range x.B {
+		v := &x.B[i]
+		(*v).A = int(d.NextUint64())
+		(*v).B = string(d.ReadPrefixedBytes())
+		(*v).C = bool(d.NextBool())
+		(*v).D.UnmarshalSia(d)
+	}
+	x.C = make([]*struct {
+		A int
+		B string
+		C bool
+	}, d.NextPrefix(1))
+	for i := range x.C {
+		v := &x.C[i]
+		if d.NextBool() {
+			(*v) = new(struct {
+				A int
+				B string
+				C bool
+			})
+			(*(*v)).A = int(d.NextUint64())
+			(*(*v)).B = string(d.ReadPrefixedBytes())
+			(*(*v)).C = bool(d.NextBool())
 		}
 	}
 	return d.Err()
