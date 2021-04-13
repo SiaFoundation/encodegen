@@ -49,7 +49,7 @@ func main() {
 	if *dst == "" {
 		*dst = filepath.Join(dir, "encoding.go")
 	}
-	if err := ioutil.WriteFile(*dst, []byte(code), 0644); err != nil {
+	if err := ioutil.WriteFile(*dst, code, 0644); err != nil {
 		log.Fatal(err)
 	}
 }

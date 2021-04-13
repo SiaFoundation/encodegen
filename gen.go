@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
-	"go/build"
 	"go/format"
 	"go/token"
 	"go/types"
-	"os"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
@@ -37,28 +35,41 @@ func (g *generator) addImport(pkg string) {
 	g.imports = append(g.imports, pkg)
 }
 
-func (g *generator) addImportType(t types.Type) {
-	if named, ok := t.(*types.Named); ok {
-		if pkg := named.Obj().Pkg(); pkg != g.pkg.Types {
-			g.addImport(pkg.Path())
+func (g *generator) typeString(t types.Type) string {
+	return types.TypeString(t, func(other *types.Package) string {
+		if g.pkg.Types == other {
+			return "" // same package; unqualified
 		}
+		// external package; add import and qualify with package name
+		g.addImport(other.Path())
+		return other.Name()
+	})
+}
+
+func (g *generator) cast(ident string, from types.Type, to types.Type) string {
+	// I *think* types.AssignableTo might be preferable here, but we should
+	// check that it doesn't skip any casts that are actually necessary
+	if types.Identical(from, to) {
+		return ident
 	}
+	return fmt.Sprintf("%s(%s)", g.typeString(to), ident)
 }
 
 func (g *generator) willGenerate(t types.Type) bool {
+	// TODO: could this just be return g.typs[g.typeString(t)] != ""
 	if named, ok := t.(*types.Named); ok && named.Obj().Pkg() == g.pkg.Types {
-		return g.typs[types.TypeString(t, types.RelativeTo(g.pkg.Types))] != ""
+		return g.typs[g.typeString(t)] != ""
 	}
 	return false
 }
 
-func Generate(dir string, typs ...string) (string, error) {
+func Generate(dir string, typs ...string) ([]byte, error) {
 	cfg := &packages.Config{Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports}
 
 	// load source package; also load "io", to construct interface types
 	pkgs, err := packages.Load(cfg, dir, "io")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// ordering of pkgs is unspecified, so locate packages manually
 	srcPkg, ioPkg := pkgs[0], pkgs[1]
@@ -80,7 +91,7 @@ func Generate(dir string, typs ...string) (string, error) {
 	// check that all types are legal
 	for _, typ := range typs {
 		if err := g.checkType(typ); err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 
@@ -108,13 +119,11 @@ import (%s)
 %s
 `, g.pkg.Name, strings.Join(g.imports, "\n"), strings.Join(methods, "\n"))
 
-	// fmt.Printf("UNFORMATTED:\n%s\n", string(raw))
-
 	formatted, err := format.Source([]byte(raw))
 	if err != nil {
 		panic(err) // should never happen
 	}
-	return string(formatted), nil
+	return formatted, nil
 }
 
 func (g *generator) checkType(typName string) error {
@@ -176,7 +185,7 @@ func (g *generator) genMethods(t types.Type) error {
 		// checkType should catch unhandled types, making this a developer error
 		panic(fmt.Sprintf("unhandled type %T", t))
 	}
-	typName := types.TypeString(t, types.RelativeTo(g.pkg.Types))
+	typName := g.typeString(t)
 	g.typs[typName] = fmt.Sprintf(`
 // MarshalSia implements encoding.SiaMarshaler.
 func (x %s) MarshalSia(w io.Writer) error {
@@ -195,13 +204,26 @@ func (x *%s) UnmarshalSia(r io.Reader) error {
 	return nil
 }
 
-func (g *generator) genEncodeBody(ident string, tOriginal types.Type) string {
-	switch t := tOriginal.Underlying().(type) {
+func (g *generator) genEncodeBody(ident string, t types.Type) string {
+	// If the type has a MarshalSia method defined (or if they *will* have such
+	// a method defined when we're done), use it.
+	if types.Implements(t, siaMarshaler) || g.willGenerate(t) {
+		// If t is a pointer type, don't duplicate the nil-check here; instead,
+		// fallthrough to the logic below, which will end up calling MarshalSia
+		// on t.Elem().
+		//
+		// TODO: check edge cases around value/pointer receivers.
+		if _, isPointer := t.Underlying().(*types.Pointer); !isPointer {
+			return fmt.Sprintf("%s.MarshalSia(e)\n", ident)
+		}
+	}
+
+	switch t := t.Underlying().(type) {
 	case *types.Basic:
 		if t.Info()&types.IsInteger != 0 {
-			return fmt.Sprintf("e.WriteUint64(%s)\n", cast(ident, t, types.Typ[types.Uint64]))
+			return fmt.Sprintf("e.WriteUint64(%s)\n", g.cast(ident, t, types.Typ[types.Uint64]))
 		} else if t.Kind() == types.Bool {
-			return fmt.Sprintf("e.WriteBool(%s)\n", cast(ident, t, types.Typ[types.Bool]))
+			return fmt.Sprintf("e.WriteBool(%s)\n", g.cast(ident, t, types.Typ[types.Bool]))
 		} else if t.Kind() == types.String {
 			return fmt.Sprintf("e.WritePrefixedBytes([]byte(%s))\n", ident)
 		}
@@ -224,18 +246,12 @@ func (g *generator) genEncodeBody(ident string, tOriginal types.Type) string {
 		body := g.genEncodeBody("v", t.Elem())
 		return prefix + fmt.Sprintf("for _, v := range %s { %s }\n", ident, body)
 	case *types.Struct:
-		// If the type has a MarshalSia method defined (or if they *will* have such
-		// a method defined when we're done), use it.
-		if types.Implements(tOriginal, siaMarshaler) || g.willGenerate(tOriginal) {
-			return fmt.Sprintf("%s.MarshalSia(e)\n", ident)
-		} else {
-			var body string
-			for i := 0; i < t.NumFields(); i++ {
-				field := t.Field(i)
-				body += g.genEncodeBody(ident+"."+field.Name(), field.Type())
-			}
-			return body
+		var body string
+		for i := 0; i < t.NumFields(); i++ {
+			field := t.Field(i)
+			body += g.genEncodeBody(ident+"."+field.Name(), field.Type())
 		}
+		return body
 	case *types.Pointer:
 		body := g.genEncodeBody(fmt.Sprintf("(*%s)", ident), t.Elem())
 		return fmt.Sprintf("e.WriteBool(%s != nil); if %s != nil { %s }\n", ident, ident, body)
@@ -243,23 +259,24 @@ func (g *generator) genEncodeBody(ident string, tOriginal types.Type) string {
 	panic("unreachable")
 }
 
-func (g *generator) genDecodeBody(ident string, tOriginal types.Type) string {
-	// If the type is defined in a separate package, import it
-	// We only need to do this for slices and pointers because they
-	// are the only cases where we actually reference the type by name.
-	// For decoding pointers, we make a call to new(typeName) so it is necessary,
-	// and in slices we need to call make().
-	// Adding imports for other kinds of types results in unused import errors
-	if arr, ok := tOriginal.(*types.Slice); ok {
-		g.addImportType(arr.Elem())
-	} else if ptr, ok := tOriginal.(*types.Pointer); ok {
-		g.addImportType(ptr.Elem())
+func (g *generator) genDecodeBody(ident string, t types.Type) string {
+	// If the type has an UnmarshalSia method defined (or if they *will* have such
+	// a method defined when we're done), use it.
+	if types.Implements(types.NewPointer(t), siaUnmarshaler) || g.willGenerate(t) {
+		// If t is a pointer type, don't duplicate the nil-check here; instead,
+		// fallthrough to the logic below, which will end up calling
+		// UnmarshalSia on t.Elem().
+		//
+		// TODO: check edge cases around value/pointer receivers.
+		if _, isPointer := t.Underlying().(*types.Pointer); !isPointer {
+			return fmt.Sprintf("%s.UnmarshalSia(d)\n", ident)
+		}
 	}
 
-	switch t := tOriginal.Underlying().(type) {
+	switch t := t.Underlying().(type) {
 	case *types.Basic:
 		if t.Info()&types.IsInteger != 0 {
-			return fmt.Sprintf("%s = %s\n", ident, cast("d.NextUint64()", types.Typ[types.Uint64], t))
+			return fmt.Sprintf("%s = %s\n", ident, g.cast("d.NextUint64()", types.Typ[types.Uint64], t))
 		} else if t.Kind() == types.Bool {
 			return fmt.Sprintf("%s = %s(d.NextBool())\n", ident, t)
 		} else if t.Kind() == types.String {
@@ -279,33 +296,19 @@ func (g *generator) genDecodeBody(ident string, tOriginal types.Type) string {
 		if basic, ok := t.Elem().(*types.Basic); ok && basic.Kind() == types.Byte {
 			return fmt.Sprintf("%s = %s(d.ReadPrefixedBytes())\n", ident, t)
 		}
-
-		/*
-			by default imported types will be expressed using their full paths
-			by using (*types.Package).Name as the qualifier we condense strings like go.sia.tech/encodegen/internal/test_imported.Imported to test_imported.Imported
-			read more: https://github.com/golang/example/blob/master/gotypes/go-types.md#formatting-support
-		*/
-		typeString := types.TypeString(t, (*types.Package).Name)
-
-		prefix := fmt.Sprintf("%s = make(%s, d.NextPrefix(%d))\n", ident, typeString, sizeof(t.Elem()))
+		prefix := fmt.Sprintf("%s = make(%s, d.NextPrefix(%d))\n", ident, g.typeString(t), sizeof(t.Elem()))
 		body := g.genDecodeBody("(*v)", t.Elem())
 		return prefix + fmt.Sprintf("for i := range %s {v := &%s[i]; %s}\n", ident, ident, body)
 	case *types.Struct:
-		// If the type has an UnmarshalSia method defined (or if they *will* have such
-		// a method defined when we're done), use it.
-		if types.Implements(types.NewPointer(tOriginal), siaUnmarshaler) || g.willGenerate(tOriginal) {
-			return fmt.Sprintf("%s.UnmarshalSia(d)\n", ident)
-		} else {
-			var body string
-			for i := 0; i < t.NumFields(); i++ {
-				field := t.Field(i)
-				body += g.genDecodeBody(ident+"."+field.Name(), field.Type())
-			}
-			return body
+		var body string
+		for i := 0; i < t.NumFields(); i++ {
+			field := t.Field(i)
+			body += g.genDecodeBody(ident+"."+field.Name(), field.Type())
 		}
+		return body
 	case *types.Pointer:
 		body := g.genDecodeBody(fmt.Sprintf("(*%s)", ident), t.Elem())
-		return fmt.Sprintf("if d.NextBool() { %s = new(%s); %s }\n", ident, types.TypeString(t.Elem(), (*types.Package).Name), body)
+		return fmt.Sprintf("if d.NextBool() { %s = new(%s); %s }\n", ident, g.typeString(t.Elem()), body)
 	}
 	panic("unreachable")
 }
@@ -335,24 +338,4 @@ func sizeof(t types.Type) int {
 		return 1
 	}
 	panic("unreachable")
-}
-
-func cast(ident string, from types.Type, to types.Type) string {
-	/*
-		I *think* types.AssignableTo might be preferable here, but we should
-		check that it doesn't skip any casts that are actually necessary
-	*/
-	if types.Identical(from, to) {
-		return ident
-	}
-	return fmt.Sprintf("%s(%s)", types.TypeString(to, (*types.Package).Name), ident)
-}
-
-func gopath() string {
-	gopath := os.Getenv("GOPATH")
-	if gopath != "" {
-		return gopath
-	} else {
-		return build.Default.GOPATH
-	}
 }
