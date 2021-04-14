@@ -207,12 +207,10 @@ func (x *%s) UnmarshalSia(r io.Reader) error {
 func (g *generator) genEncodeBody(ident string, t types.Type) string {
 	// If the type has a MarshalSia method defined (or if they *will* have such
 	// a method defined when we're done), use it.
-	if types.Implements(t, siaMarshaler) || g.willGenerate(t) {
+	if types.Implements(t, siaMarshaler) || types.Implements(types.NewPointer(t), siaMarshaler) || g.willGenerate(t) {
 		// If t is a pointer type, don't duplicate the nil-check here; instead,
 		// fallthrough to the logic below, which will end up calling MarshalSia
 		// on t.Elem().
-		//
-		// TODO: check edge cases around value/pointer receivers.
 		if _, isPointer := t.Underlying().(*types.Pointer); !isPointer {
 			return fmt.Sprintf("%s.MarshalSia(e)\n", ident)
 		}
@@ -266,8 +264,6 @@ func (g *generator) genDecodeBody(ident string, t types.Type) string {
 		// If t is a pointer type, don't duplicate the nil-check here; instead,
 		// fallthrough to the logic below, which will end up calling
 		// UnmarshalSia on t.Elem().
-		//
-		// TODO: check edge cases around value/pointer receivers.
 		if _, isPointer := t.Underlying().(*types.Pointer); !isPointer {
 			return fmt.Sprintf("%s.UnmarshalSia(d)\n", ident)
 		}
