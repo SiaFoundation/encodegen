@@ -200,9 +200,8 @@ func benchmarkOfficialMarshal(b *testing.B, obj interface{}) {
 }
 
 func benchmarkOfficialUnmarshal(b *testing.B, obj interface{}, dst interface{}) {
-	data := encoding.Marshal(simpleMessage)
-	msg := TestMessageSimple{}
+	data := encoding.Marshal(obj)
 	for i := 0; i < b.N; i++ {
-		encoding.Unmarshal(data, &msg)
+		encoding.Unmarshal(data, &dst)
 	}
 }
