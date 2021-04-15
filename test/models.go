@@ -1,7 +1,12 @@
 package test
 
 import (
-	"go.sia.tech/encodegen/test/imported"
+	imported "go.sia.tech/encodegen/test/imported"
+	importedrename "go.sia.tech/encodegen/test/imported"
+	importedchild "go.sia.tech/encodegen/test/imported/imported"
+	importedchild1 "go.sia.tech/encodegen/test/imported/imported"
+	importedchild2 "go.sia.tech/encodegen/test/imported/imported"
+	importedchild3 "go.sia.tech/encodegen/test/imported/imported/imported"
 	"go.sia.tech/encodegen/test/imported/subimported"
 )
 
@@ -21,6 +26,11 @@ type TestMessageSimple struct {
 	K ***uint64
 	L []*imported.Imported
 	M subimported.HashAlias
+	O []importedrename.Imported
+	P []importedchild.Imported
+	Q *importedchild1.Imported
+	R []importedchild2.Imported
+	S []*importedchild3.Imported
 }
 
 type TestMessageSecond struct {

@@ -1,8 +1,8 @@
 package test
 
 import (
-	"go.sia.tech/encodegen/test"
 	"bytes"
+	"go.sia.tech/encodegen/test"
 )
 
 func Fuzz(data []byte) int {
