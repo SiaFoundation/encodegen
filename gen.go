@@ -21,29 +21,22 @@ func makeInterface(name string, param types.Type) *types.Interface {
 }
 
 type generator struct {
-	pkg  *packages.Package
-	typs map[string]string
-	// imports []string
+	pkg     *packages.Package
+	typs    map[string]string
 	imports map[string]string
 }
 
-type rename struct {
-	Name  string
-	Count int
-}
-
-func (g *generator) addImport(pkg string, shortName rename) string {
-	name := shortName.Name
-	if shortName.Count != 0 {
-		name += strconv.Itoa(shortName.Count)
+func (g *generator) addImport(pkg string, rename string, count int) string {
+	name := rename
+	if count != 0 {
+		name += strconv.Itoa(count)
 	}
 
 	existingPath, exists := g.imports[name]
 	// if this name is already taken and it's not equal to our path (so we can't just leave it)
 	if exists && pkg != existingPath {
-		shortName.Count += 1
 		// if the name is already taken, try again with name+1 (name1, name2, name3, name...)
-		return g.addImport(pkg, shortName)
+		return g.addImport(pkg, rename, count+1)
 	} else {
 		g.imports[name] = pkg
 		// return the rename name we end up using
@@ -58,7 +51,7 @@ func (g *generator) typeString(t types.Type) string {
 		}
 
 		// external package; add import and qualify with package name
-		return g.addImport(other.Path(), rename{Name: other.Name()})
+		return g.addImport(other.Path(), other.Name(), 0)
 	})
 }
 
@@ -102,8 +95,8 @@ func Generate(dir string, typs ...string) ([]byte, error) {
 		typs:    make(map[string]string),
 		imports: make(map[string]string),
 	}
-	g.addImport("io", rename{Name: "io"}) // for io.Reader/io.Writer in method signatures
-	g.addImport("gitlab.com/NebulousLabs/encoding", rename{Name: "encoding"})
+	g.addImport("io", "io", 0) // for io.Reader/io.Writer in method signatures
+	g.addImport("gitlab.com/NebulousLabs/encoding", "encoding", 0)
 
 	// check that all types are legal
 	for _, typ := range typs {
