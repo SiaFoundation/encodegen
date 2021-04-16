@@ -1,4 +1,4 @@
-test/fuzz/corpus
-test/fuzz/crashers
-test/fuzz/suppressions
-test/fuzz/test-fuzz.zip
+fuzz/corpus
+fuzz/crashers
+fuzz/suppressions
+fuzz/fuzz-fuzz.zip

@@ -1,5 +1,7 @@
 package test
 
+//go:generate encodegen -t TestMessageSimple,TestMessageEmbedded
+
 import (
 	imported "go.sia.tech/encodegen/test/imported"
 	importedrename "go.sia.tech/encodegen/test/imported"
@@ -31,11 +33,6 @@ type TestMessageSimple struct {
 	Q *importedchild1.Imported
 	R []importedchild2.Imported
 	S []*importedchild3.Imported
-}
-
-type TestMessageSecond struct {
-	A uint64
-	B TestMessageSimple
 }
 
 type TestMessageEmbedded struct {
