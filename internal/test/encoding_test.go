@@ -74,9 +74,10 @@ func TestGolden(t *testing.T) {
 	tests := []struct {
 		name string
 		obj  interface{}
+		typ  interface{}
 	}{
-		{"simple", simpleMessage},
-		{"embedded", embeddedMessage},
+		{"simple", simpleMessage, new(TestMessageSimple)},
+		{"embedded", embeddedMessage, new(TestMessageEmbedded)},
 	}
 
 	if *update {
@@ -96,7 +97,10 @@ func TestGolden(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !bytes.Equal(encoding.Marshal(test.obj), golden) {
-			t.Error("encoded message did not match golden file")
+			t.Errorf("encoded %T did not match golden file", test.obj)
+		}
+		if err := encoding.Unmarshal(golden, test.typ); err != nil {
+			t.Errorf("decoding into %T failed: %v", test.typ, err)
 		}
 	}
 }

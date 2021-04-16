@@ -94,7 +94,7 @@ func Generate(dir string, typs ...string) ([]byte, error) {
 	// check that all types are legal
 	for _, typ := range typs {
 		if err := g.checkType(typ); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot generate methods for type %v: %w", typ, err)
 		}
 	}
 
@@ -154,6 +154,12 @@ func (g *generator) checkType(typName string) error {
 		case *types.Struct:
 			for i := 0; i < t.NumFields(); i++ {
 				field := t.Field(i)
+				if !field.Exported() {
+					if ctx != "" {
+						return fmt.Errorf("unexported field %s at (%s)%s", field.Name(), typName, ctx)
+					}
+					return fmt.Errorf("unexported field %s", field.Name())
+				}
 				if err := check(field.Type(), ctx+"."+field.Name()); err != nil {
 					return err
 				}
