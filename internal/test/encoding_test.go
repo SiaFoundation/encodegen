@@ -1,7 +1,10 @@
 package test
 
 import (
+	"bytes"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"testing"
 
 	"gitlab.com/NebulousLabs/encoding"
@@ -63,6 +66,39 @@ var embeddedMessage = TestMessageEmbedded{
 		{A: 5, B: "X", C: true},
 		{A: 1, B: "AAA", C: false},
 	},
+}
+
+var update = flag.Bool("update", false, "update .golden files")
+
+func TestGolden(t *testing.T) {
+	tests := []struct {
+		name string
+		obj  interface{}
+	}{
+		{"simple", simpleMessage},
+		{"embedded", embeddedMessage},
+	}
+
+	if *update {
+		for _, test := range tests {
+			path := fmt.Sprintf("testdata/%v.golden", test.name)
+			err := ioutil.WriteFile(path, encoding.Marshal(test.obj), 0660)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	for _, test := range tests {
+		path := fmt.Sprintf("testdata/%v.golden", test.name)
+		golden, err := ioutil.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(encoding.Marshal(test.obj), golden) {
+			t.Error("encoded message did not match golden file")
+		}
+	}
 }
 
 func BenchmarkMarshal(b *testing.B) {
