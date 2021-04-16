@@ -3,13 +3,13 @@ package test
 //go:generate encodegen -t TestMessageSimple,TestMessageEmbedded
 
 import (
-	imported "go.sia.tech/encodegen/test/imported"
-	importedrename "go.sia.tech/encodegen/test/imported"
-	importedchild "go.sia.tech/encodegen/test/imported/imported"
-	importedchild1 "go.sia.tech/encodegen/test/imported/imported"
-	importedchild2 "go.sia.tech/encodegen/test/imported/imported"
-	importedchild3 "go.sia.tech/encodegen/test/imported/imported/imported"
-	"go.sia.tech/encodegen/test/imported/subimported"
+	imported "go.sia.tech/encodegen/internal/test/imported"
+	importedrename "go.sia.tech/encodegen/internal/test/imported"
+	importedchild "go.sia.tech/encodegen/internal/test/imported/imported"
+	importedchild1 "go.sia.tech/encodegen/internal/test/imported/imported"
+	importedchild2 "go.sia.tech/encodegen/internal/test/imported/imported"
+	importedchild3 "go.sia.tech/encodegen/internal/test/imported/imported/imported"
+	"go.sia.tech/encodegen/internal/test/imported/subimported"
 )
 
 type Hash [32]byte

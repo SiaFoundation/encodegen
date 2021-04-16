@@ -2,7 +2,7 @@ package fuzz
 
 import (
 	"gitlab.com/NebulousLabs/encoding"
-	"go.sia.tech/encodegen/test"
+	"go.sia.tech/encodegen/internal/test"
 )
 
 func Fuzz(data []byte) int {

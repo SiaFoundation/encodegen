@@ -6,7 +6,7 @@ import (
 	"github.com/dvyukov/go-fuzz/gen"
 	"github.com/erggo/datafiller"
 	"gitlab.com/NebulousLabs/encoding"
-	"go.sia.tech/encodegen/test"
+	"go.sia.tech/encodegen/internal/test"
 )
 
 func main() {

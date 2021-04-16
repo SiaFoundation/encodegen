@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"gitlab.com/NebulousLabs/encoding"
-	"go.sia.tech/encodegen/test/imported"
+	"go.sia.tech/encodegen/internal/test/imported"
 )
 
 var simpleMessage = TestMessageSimple{
