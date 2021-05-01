@@ -26,7 +26,7 @@ func main() {
 	}
 
 	dst := flag.String("o", "", "output file name; default srcdir/encoding.go")
-	typs := flag.String("t", "", "comma-separated list of type names; to override default unmarshaler allocation limit, add a colon and then the expression replacing it after; required")
+	typs := flag.String("t", "", "comma-separated list of type names; to (optionally) override default unmarshaler allocation limit, add a colon and then the expression replacing it after; required")
 	flag.Parse()
 	args := flag.Args()
 
