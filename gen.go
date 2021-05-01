@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/format"
+	"go/parser"
 	"go/token"
 	"go/types"
 	"path"
@@ -20,9 +21,14 @@ func makeInterface(name string, param types.Type) *types.Interface {
 	return types.NewInterfaceType([]*types.Func{meth}, nil).Complete()
 }
 
+type gentype struct {
+	code          string
+	allocatorExpr string
+}
+
 type generator struct {
 	pkg     *packages.Package
-	typs    map[string]string
+	typs    map[string]gentype
 	imports map[string]string
 }
 
@@ -59,7 +65,7 @@ func (g *generator) cast(ident string, from types.Type, to types.Type) string {
 func (g *generator) willGenerate(t types.Type) bool {
 	// TODO: could this just be return g.typs[g.typeString(t)] != ""
 	if named, ok := t.(*types.Named); ok && named.Obj().Pkg() == g.pkg.Types {
-		return g.typs[g.typeString(t)] != ""
+		return g.typs[g.typeString(t)].code != ""
 	}
 	return false
 }
@@ -84,36 +90,49 @@ func Generate(dir string, typs ...string) ([]byte, error) {
 
 	g := &generator{
 		pkg:  srcPkg,
-		typs: make(map[string]string),
+		typs: make(map[string]gentype),
 		imports: map[string]string{
 			"io":       "io", // for io.Reader/io.Writer in method signatures
 			"encoding": "gitlab.com/NebulousLabs/encoding",
 		},
 	}
 
-	// check that all types are legal
+	// initialize g.typs with all of the types we're going to generate methods
+	// for. This allows us to emit MarshalSia/UnmarshalSia calls for other types
+	// in the same codegen batch.
 	for _, typ := range typs {
+		allocatorExpr := "encoding.DefaultAllocLimit"
+		// get unmarshaler allocation limit expression (if present)
+		typSplit := strings.Split(typ, ":")
+		if len(typSplit) > 1 {
+			expr, err := parser.ParseExpr(typSplit[1])
+			if err != nil {
+				return nil, fmt.Errorf("error in expression (%s) for the allocation limit for type %v: %w", typSplit[1], typ, err)
+			}
+			allocatorExpr = types.ExprString(expr)
+		}
+		g.typs[typSplit[0]] = gentype{
+			code:          "<PLACEHOLDER>",
+			allocatorExpr: allocatorExpr,
+		}
+
+	}
+	// check that all types are legal
+	for typ := range g.typs {
 		if err := g.checkType(typ); err != nil {
 			return nil, fmt.Errorf("cannot generate methods for type %v: %w", typ, err)
 		}
 	}
 
-	// initialize g.typs with all of the types we're going to generate methods
-	// for. This allows us to emit MarshalSia/UnmarshalSia calls for other types
-	// in the same codegen batch.
-	for _, typ := range typs {
-		g.typs[typ] = "<PLACEHOLDER>"
-	}
-
 	// generate marshal/unmarshal methods for each specified type
-	for _, typ := range typs {
+	for typ := range g.typs {
 		g.genMethods(g.pkg.Types.Scope().Lookup(typ).Type())
 	}
 
 	// output
 	var methods []string
-	for _, code := range g.typs {
-		methods = append(methods, code)
+	for _, typ := range g.typs {
+		methods = append(methods, typ.code)
 	}
 
 	var importString string
@@ -205,7 +224,8 @@ func (g *generator) genMethods(t types.Type) error {
 		panic(fmt.Sprintf("unhandled type %T", t))
 	}
 	typName := g.typeString(t)
-	g.typs[typName] = fmt.Sprintf(`
+	g.typs[typName] = gentype{
+		code: fmt.Sprintf(`
 // MarshalSia implements encoding.SiaMarshaler.
 func (x %s) MarshalSia(w io.Writer) error {
 	e := encoding.NewEncoder(w)
@@ -215,11 +235,12 @@ func (x %s) MarshalSia(w io.Writer) error {
 
 // UnmarshalSia implements encoding.SiaUnmarshaler.
 func (x *%s) UnmarshalSia(r io.Reader) error {
-	d := encoding.NewDecoder(r, encoding.DefaultAllocLimit)
+	d := encoding.NewDecoder(r, %s)
 	%s
 	return d.Err()
 }
-`, typName, strings.TrimSpace(enc), typName, strings.TrimSpace(dec))
+`, typName, strings.TrimSpace(enc), typName, g.typs[typName].allocatorExpr, strings.TrimSpace(dec)),
+	}
 	return nil
 }
 
