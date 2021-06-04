@@ -1,3 +1,5 @@
+// +build gofuzzbeta
+
 package test
 
 import (
@@ -137,4 +139,40 @@ func BenchmarkUnmarshal(b *testing.B) {
 			}
 		})
 	}
+}
+
+func FuzzUnmarshalSimple(f *testing.F) {
+	/*
+		Unfortunately testing.F.Add only supports primitive types.  The
+		proposal (https://go.googlesource.com/proposal/+/master/design/draft-fuzzing.md)
+		says support for structs will eventually be added.  But this means we can't
+		do things like (for now):
+
+		    f.Add(simpleMessage)
+		    f.Add(embeddedMessage)
+
+		    f.Fuzz(func(t *testing.T, fuzzMessage interface{}) {
+				data := encoding.Marshal(fuzzMessage)
+		        err := encoding.Unmarshal(data, &fuzzMessage)
+		        if err != nil {
+					t.Fatalf("Marshal (on %+v) generated output (%+v) that failed to unmarshal", fuzzMessage, data)
+		        }
+		    })
+
+		to fuzz marshaling.
+	*/
+
+	// empty struct
+	f.Add(encoding.Marshal(TestMessageSimple{}))
+	// mostly filled struct
+	f.Add(encoding.Marshal(simpleMessage))
+
+	f.Fuzz(func(t *testing.T, fuzzMessage []byte) {
+		t.Parallel() // seed corpus tests can run in parallel
+		var unmarshaledMessage TestMessageSimple
+		err := encoding.Unmarshal(fuzzMessage, &unmarshaledMessage)
+		if err != nil {
+			t.Skip()
+		}
+	})
 }
