@@ -161,6 +161,12 @@ import (%s)
 func (g *generator) checkType(typName string) error {
 	var check func(t types.Type, ctx string) error
 	check = func(t types.Type, ctx string) error {
+		// If the type already implements both the marshal and unmarshal interface
+		// we can skip checking since the generater will use them.
+		if types.Implements(t, siaMarshaler) && types.Implements(types.NewPointer(t), siaUnmarshaler) {
+			return nil
+		}
+
 		switch t := t.Underlying().(type) {
 		case *types.Basic:
 			if t.Info()&types.IsInteger != 0 || t.Kind() == types.Bool || t.Kind() == types.String {
