@@ -11,7 +11,10 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-const typesPackage = "go.sia.tech/core/types"
+const (
+	typesPackage       = "go.sia.tech/core/types"
+	currencyDefinition = typesPackage + ".Currency"
+)
 
 var encoderTo, decoderFrom *types.Interface
 
@@ -71,7 +74,7 @@ func (g *generator) willGenerate(t types.Type) bool {
 }
 
 func Generate(dir string, typs ...string) ([]byte, error) {
-	cfg := &packages.Config{Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports}
+	cfg := &packages.Config{Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedImports}
 
 	// load source package; also load "go.sia.tech/core/types", to construct interface types
 	pkgs, err := packages.Load(cfg, dir, typesPackage)
@@ -257,6 +260,8 @@ func (g *generator) genEncodeBody(ident string, t types.Type) string {
 		if _, isPointer := t.Underlying().(*types.Pointer); !isPointer {
 			return fmt.Sprintf("%s.EncodeTo(e)\n", ident)
 		}
+	} else if t.String() == currencyDefinition {
+		return fmt.Sprintf("types.V1Currency(%s).EncodeTo(e)\n", ident)
 	}
 
 	switch t := t.Underlying().(type) {
@@ -310,6 +315,8 @@ func (g *generator) genDecodeBody(ident string, t types.Type) string {
 		if _, isPointer := t.Underlying().(*types.Pointer); !isPointer {
 			return fmt.Sprintf("%s.DecodeFrom(d)\n", ident)
 		}
+	} else if t.String() == currencyDefinition {
+		return fmt.Sprintf("(*types.V1Currency)(&%s).DecodeFrom(d)\n", ident)
 	}
 
 	switch t := t.Underlying().(type) {
