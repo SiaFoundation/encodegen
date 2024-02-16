@@ -1,7 +1,6 @@
 package test
 
-// encoding.DefaultAllocLimit is already 1e6 but we use it as the expression to test if overriding works
-//go:generate encodegen -t TestMessageSimple,TestMessageEmbedded:1e6
+//go:generate encodegen -t TestMessageSimple,TestMessageEmbedded
 
 import (
 	imported "go.sia.tech/encodegen/internal/test/imported"
