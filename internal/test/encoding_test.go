@@ -122,3 +122,21 @@ func TestGolden(t *testing.T) {
 		}
 	}
 }
+
+func FuzzDecoding(f *testing.F) {
+	golden, err := os.ReadFile("testdata/simple.golden")
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Add(golden)
+
+	var buf bytes.Buffer
+	f.Fuzz(func(t *testing.T, b []byte) {
+		buf.Reset()
+		buf.Write(b)
+
+		var x TestMessageSimple
+		d := types.NewBufDecoder(buf.Bytes())
+		x.DecodeFrom(d)
+	})
+}
