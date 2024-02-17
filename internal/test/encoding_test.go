@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"gitlab.com/NebulousLabs/encoding"
+	"go.sia.tech/core/types"
 	"go.sia.tech/encodegen/internal/test/imported"
 )
 
@@ -83,7 +84,7 @@ func TestGolden(t *testing.T) {
 	if *update {
 		for _, test := range tests {
 			path := fmt.Sprintf("testdata/%v.golden", test.name)
-			err := ioutil.WriteFile(path, encoding.Marshal(test.obj), 0660)
+			err := os.WriteFile(path, encoding.Marshal(test.obj), 0660)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -92,49 +93,50 @@ func TestGolden(t *testing.T) {
 
 	for _, test := range tests {
 		path := fmt.Sprintf("testdata/%v.golden", test.name)
-		golden, err := ioutil.ReadFile(path)
+		golden, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !bytes.Equal(encoding.Marshal(test.obj), golden) {
+
+		var buf bytes.Buffer
+		e := types.NewEncoder(&buf)
+		test.obj.(types.EncoderTo).EncodeTo(e)
+		e.Flush()
+
+		if !bytes.Equal(buf.Bytes(), golden) {
 			t.Errorf("encoded %T did not match golden file", test.obj)
 		}
-		if err := encoding.Unmarshal(golden, test.typ); err != nil {
+
+		d := types.NewBufDecoder(buf.Bytes())
+		test.typ.(types.DecoderFrom).DecodeFrom(d)
+		if err := d.Err(); err != nil {
 			t.Errorf("decoding into %T failed: %v", test.typ, err)
+		}
+
+		buf.Reset()
+		test.typ.(types.EncoderTo).EncodeTo(e)
+		e.Flush()
+
+		if !bytes.Equal(buf.Bytes(), golden) {
+			t.Errorf("reencoded %T did not match golden file", test.typ)
 		}
 	}
 }
 
-func BenchmarkMarshal(b *testing.B) {
-	objs := []interface{}{
-		simpleMessage,
-		embeddedMessage,
+func FuzzDecoding(f *testing.F) {
+	golden, err := os.ReadFile("testdata/simple.golden")
+	if err != nil {
+		f.Fatal(err)
 	}
-	for _, obj := range objs {
-		b.Run(fmt.Sprintf("%T", obj), func(b *testing.B) {
-			b.SetBytes(int64(len(encoding.Marshal(obj))))
-			for i := 0; i < b.N; i++ {
-				encoding.Marshal(obj)
-			}
-		})
-	}
-}
+	f.Add(golden)
 
-func BenchmarkUnmarshal(b *testing.B) {
-	tests := []struct {
-		obj interface{}
-		typ interface{}
-	}{
-		{simpleMessage, new(TestMessageSimple)},
-		{embeddedMessage, new(TestMessageEmbedded)},
-	}
-	for _, test := range tests {
-		b.Run(fmt.Sprintf("%T", test.obj), func(b *testing.B) {
-			data := encoding.Marshal(test.obj)
-			b.SetBytes(int64(len(data)))
-			for i := 0; i < b.N; i++ {
-				encoding.Unmarshal(data, test.typ)
-			}
-		})
-	}
+	var buf bytes.Buffer
+	f.Fuzz(func(t *testing.T, b []byte) {
+		buf.Reset()
+		buf.Write(b)
+
+		var x TestMessageSimple
+		d := types.NewBufDecoder(buf.Bytes())
+		x.DecodeFrom(d)
+	})
 }

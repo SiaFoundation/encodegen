@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"go/format"
-	"go/parser"
 	"go/token"
 	"go/types"
 	"path"
@@ -12,7 +11,12 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-var siaMarshaler, siaUnmarshaler *types.Interface
+const (
+	typesPackage       = "go.sia.tech/core/types"
+	currencyDefinition = typesPackage + ".Currency"
+)
+
+var encoderTo, decoderFrom *types.Interface
 
 func makeInterface(name string, param types.Type) *types.Interface {
 	params := types.NewTuple(types.NewVar(token.NoPos, nil, "", param))
@@ -22,8 +26,7 @@ func makeInterface(name string, param types.Type) *types.Interface {
 }
 
 type gentype struct {
-	code          string
-	allocatorExpr string
+	code string
 }
 
 type generator struct {
@@ -71,49 +74,50 @@ func (g *generator) willGenerate(t types.Type) bool {
 }
 
 func Generate(dir string, typs ...string) ([]byte, error) {
-	cfg := &packages.Config{Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports}
+	cfg := &packages.Config{Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedImports}
 
-	// load source package; also load "io", to construct interface types
-	pkgs, err := packages.Load(cfg, dir, "io")
+	// load source package; also load "go.sia.tech/core/types", to construct interface types
+	pkgs, err := packages.Load(cfg, dir, typesPackage)
 	if err != nil {
 		return nil, err
 	}
+	for _, pkg := range pkgs {
+		for _, err := range pkg.Errors {
+			return nil, err
+		}
+	}
 	// ordering of pkgs is unspecified, so locate packages manually
-	srcPkg, ioPkg := pkgs[0], pkgs[1]
-	if ioPkg.PkgPath != "io" {
-		srcPkg, ioPkg = ioPkg, srcPkg
+	var srcPkg, typesPkg *packages.Package
+	if len(pkgs) == 2 {
+		srcPkg, typesPkg = pkgs[0], pkgs[1]
+		if typesPkg.PkgPath != typesPackage {
+			srcPkg, typesPkg = typesPkg, srcPkg
+		}
+	} else if len(pkgs) == 1 {
+		// we are in go.sia.tech/core/types
+		srcPkg, typesPkg = pkgs[0], pkgs[0]
 	}
 
 	// construct interface types
-	siaMarshaler = makeInterface("MarshalSia", ioPkg.Types.Scope().Lookup("Writer").Type())
-	siaUnmarshaler = makeInterface("UnmarshalSia", ioPkg.Types.Scope().Lookup("Reader").Type())
+	encoderTo = typesPkg.Types.Scope().Lookup("EncoderTo").Type().Underlying().(*types.Interface)
+	decoderFrom = typesPkg.Types.Scope().Lookup("DecoderFrom").Type().Underlying().(*types.Interface)
 
 	g := &generator{
 		pkg:  srcPkg,
 		typs: make(map[string]gentype),
 		imports: map[string]string{
-			"io":       "io", // for io.Reader/io.Writer in method signatures
-			"encoding": "gitlab.com/NebulousLabs/encoding",
+			"types": typesPackage,
 		},
 	}
 
 	// initialize g.typs with all of the types we're going to generate methods
-	// for. This allows us to emit MarshalSia/UnmarshalSia calls for other types
+	// for. This allows us to emit EncodeTo/DecodeFrom calls for other types
 	// in the same codegen batch.
 	for _, typ := range typs {
-		allocatorExpr := "encoding.DefaultAllocLimit"
 		// get unmarshaler allocation limit expression (if present)
 		typSplit := strings.Split(typ, ":")
-		if len(typSplit) > 1 {
-			expr, err := parser.ParseExpr(typSplit[1])
-			if err != nil {
-				return nil, fmt.Errorf("error in expression (%s) for the allocation limit for type %v: %w", typSplit[1], typ, err)
-			}
-			allocatorExpr = types.ExprString(expr)
-		}
 		g.typs[typSplit[0]] = gentype{
-			code:          "<PLACEHOLDER>",
-			allocatorExpr: allocatorExpr,
+			code: "<PLACEHOLDER>",
 		}
 
 	}
@@ -163,7 +167,7 @@ func (g *generator) checkType(typName string) error {
 	check = func(t types.Type, ctx string) error {
 		// If the type already implements both the marshal and unmarshal interface
 		// we can skip checking since the generater will use them.
-		if (types.Implements(t, siaMarshaler) || types.Implements(types.NewPointer(t), siaMarshaler)) && types.Implements(types.NewPointer(t), siaUnmarshaler) {
+		if (types.Implements(t, encoderTo) || types.Implements(types.NewPointer(t), encoderTo)) && types.Implements(types.NewPointer(t), decoderFrom) {
 			return nil
 		}
 
@@ -232,34 +236,32 @@ func (g *generator) genMethods(t types.Type) error {
 	typName := g.typeString(t)
 	g.typs[typName] = gentype{
 		code: fmt.Sprintf(`
-// MarshalSia implements encoding.SiaMarshaler.
-func (x %s) MarshalSia(w io.Writer) error {
-	e := encoding.NewEncoder(w)
+// EncodeTo implements types.EncoderTo.
+func (x %s) EncodeTo(e *types.Encoder) {
 	%s
-	return e.Err()
 }
 
-// UnmarshalSia implements encoding.SiaUnmarshaler.
-func (x *%s) UnmarshalSia(r io.Reader) error {
-	d := encoding.NewDecoder(r, %s)
+// DecodeFrom implements types.DecoderFrom.
+func (x *%s) DecodeFrom(d *types.Decoder) {
 	%s
-	return d.Err()
 }
-`, typName, strings.TrimSpace(enc), typName, g.typs[typName].allocatorExpr, strings.TrimSpace(dec)),
+`, typName, strings.TrimSpace(enc), typName, strings.TrimSpace(dec)),
 	}
 	return nil
 }
 
 func (g *generator) genEncodeBody(ident string, t types.Type) string {
-	// If the type has a MarshalSia method defined (or if they *will* have such
+	// If the type has a EncodeTo method defined (or if they *will* have such
 	// a method defined when we're done), use it.
-	if types.Implements(t, siaMarshaler) || types.Implements(types.NewPointer(t), siaMarshaler) || g.willGenerate(t) {
+	if types.Implements(t, encoderTo) || types.Implements(types.NewPointer(t), encoderTo) || g.willGenerate(t) {
 		// If t is a pointer type, don't duplicate the nil-check here; instead,
-		// fallthrough to the logic below, which will end up calling MarshalSia
+		// fallthrough to the logic below, which will end up calling EncodeTo
 		// on t.Elem().
 		if _, isPointer := t.Underlying().(*types.Pointer); !isPointer {
-			return fmt.Sprintf("%s.MarshalSia(e)\n", ident)
+			return fmt.Sprintf("%s.EncodeTo(e)\n", ident)
 		}
+	} else if t.String() == currencyDefinition {
+		return fmt.Sprintf("types.V1Currency(%s).EncodeTo(e)\n", ident)
 	}
 
 	switch t := t.Underlying().(type) {
@@ -269,7 +271,7 @@ func (g *generator) genEncodeBody(ident string, t types.Type) string {
 		} else if t.Kind() == types.Bool {
 			return fmt.Sprintf("e.WriteBool(%s)\n", g.cast(ident, t, types.Typ[types.Bool]))
 		} else if t.Kind() == types.String {
-			return fmt.Sprintf("e.WritePrefixedBytes([]byte(%s))\n", ident)
+			return fmt.Sprintf("e.WriteBytes([]byte(%s))\n", ident)
 		}
 	case *types.Array:
 		// check for [...]byte
@@ -284,9 +286,9 @@ func (g *generator) genEncodeBody(ident string, t types.Type) string {
 	case *types.Slice:
 		// check for []byte
 		if basic, ok := t.Elem().(*types.Basic); ok && basic.Kind() == types.Byte {
-			return fmt.Sprintf("e.WritePrefixedBytes(%s)\n", ident)
+			return fmt.Sprintf("e.WriteBytes(%s)\n", ident)
 		}
-		prefix := fmt.Sprintf("e.WriteInt(len(%s))\n", ident)
+		prefix := fmt.Sprintf("e.WritePrefix(len(%s))\n", ident)
 		body := g.genEncodeBody("v", t.Elem())
 		return prefix + fmt.Sprintf("for _, v := range %s { %s }\n", ident, body)
 	case *types.Struct:
@@ -304,25 +306,27 @@ func (g *generator) genEncodeBody(ident string, t types.Type) string {
 }
 
 func (g *generator) genDecodeBody(ident string, t types.Type) string {
-	// If the type has an UnmarshalSia method defined (or if they *will* have such
+	// If the type has an DecodeFrom method defined (or if they *will* have such
 	// a method defined when we're done), use it.
-	if types.Implements(types.NewPointer(t), siaUnmarshaler) || g.willGenerate(t) {
+	if types.Implements(types.NewPointer(t), decoderFrom) || g.willGenerate(t) {
 		// If t is a pointer type, don't duplicate the nil-check here; instead,
 		// fallthrough to the logic below, which will end up calling
-		// UnmarshalSia on t.Elem().
+		// DecodeFrom on t.Elem().
 		if _, isPointer := t.Underlying().(*types.Pointer); !isPointer {
-			return fmt.Sprintf("%s.UnmarshalSia(d)\n", ident)
+			return fmt.Sprintf("%s.DecodeFrom(d)\n", ident)
 		}
+	} else if t.String() == currencyDefinition {
+		return fmt.Sprintf("(*types.V1Currency)(&%s).DecodeFrom(d)\n", ident)
 	}
 
 	switch t := t.Underlying().(type) {
 	case *types.Basic:
 		if t.Info()&types.IsInteger != 0 {
-			return fmt.Sprintf("%s = %s\n", ident, g.cast("d.NextUint64()", types.Typ[types.Uint64], t))
+			return fmt.Sprintf("%s = %s\n", ident, g.cast("d.ReadUint64()", types.Typ[types.Uint64], t))
 		} else if t.Kind() == types.Bool {
-			return fmt.Sprintf("%s = %s(d.NextBool())\n", ident, t)
+			return fmt.Sprintf("%s = %s(d.ReadBool())\n", ident, t)
 		} else if t.Kind() == types.String {
-			return fmt.Sprintf("%s = %s(d.ReadPrefixedBytes())\n", ident, t)
+			return fmt.Sprintf("%s = %s(d.ReadBytes())\n", ident, t)
 		}
 	case *types.Array:
 		// check for [...]byte
@@ -336,9 +340,9 @@ func (g *generator) genDecodeBody(ident string, t types.Type) string {
 	case *types.Slice:
 		// check for []byte
 		if basic, ok := t.Elem().(*types.Basic); ok && basic.Kind() == types.Byte {
-			return fmt.Sprintf("%s = %s(d.ReadPrefixedBytes())\n", ident, t)
+			return fmt.Sprintf("%s = %s(d.ReadBytes())\n", ident, t)
 		}
-		prefix := fmt.Sprintf("%s = make(%s, d.NextPrefix(%d))\n", ident, g.typeString(t), sizeof(t.Elem()))
+		prefix := fmt.Sprintf("%s = make(%s, d.ReadPrefix())\n", ident, g.typeString(t))
 		body := g.genDecodeBody("(*v)", t.Elem())
 		return prefix + fmt.Sprintf("for i := range %s {v := &%s[i]; %s}\n", ident, ident, body)
 	case *types.Struct:
@@ -350,7 +354,7 @@ func (g *generator) genDecodeBody(ident string, t types.Type) string {
 		return body
 	case *types.Pointer:
 		body := g.genDecodeBody(fmt.Sprintf("(*%s)", ident), t.Elem())
-		return fmt.Sprintf("if d.NextBool() { %s = new(%s); %s }\n", ident, g.typeString(t.Elem()), body)
+		return fmt.Sprintf("if d.ReadBool() { %s = new(%s); %s }\n", ident, g.typeString(t.Elem()), body)
 	}
 	panic("unreachable")
 }
